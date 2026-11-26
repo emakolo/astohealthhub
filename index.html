@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astro Health Hub — Mars Transit Crew Monitor (Simulated)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        midnight: {
+                            950: '#070B14',
+                            900: '#0B1120',
+                            850: '#0E1628',
+                            800: '#152038',
+                        },
+                        status: {
+                            ok: '#38BDF8',
+                            watch: '#FBBF24',
+                            emergency: '#FB7185',
+                            earth: '#BAE6FD',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Core Atmospheric & Glassmorphism Styles */
+        :root {
+            --glass-bg: rgba(11, 17, 32, 0.68);
+            --glass-bg-elevated: rgba(15, 23, 42, 0.78);
+            --glass-border: rgba(125, 211, 252, 0.16);
+            --glass-border-strong: rgba(125, 211, 252, 0.28);
+        }
+
+        body {
+            background-color: #070B14;
+            color: #F8FAFC;
+            font-variant-numeric: tabular-nums;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 12px 36px rgba(3, 7, 18, 0.55);
+        }
+
+        .glass-panel-elevated {
+            background: var(--glass-bg-elevated);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid var(--glass-border-strong);
+            box-shadow: 0 20px 48px rgba(2, 6, 15, 0.7);
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Subtle EVA Astronaut Float Animation (Disabled in Quiet Mode) */
+        @keyframes evaDrift {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            50% { transform: translate(-6px, -10px) rotate(-1.5deg); }
+        }
+
+        .animate-eva {
+            animation: evaDrift 11s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        body.quiet-mode .animate-eva,
+        body.quiet-mode .atlas-ring-active,
+        body.quiet-mode .pulse-subtle,
+        body.quiet-mode .atlas-mascot-stage,
+        body.quiet-mode .atlas-mascot-bob,
+        body.quiet-mode .atlas-home-bob {
+            animation: none !important;
+        }
+
+        /* ATLAS SI — free-floating cutout (no box), character motion */
+        @keyframes atlasFloat {
+            0%, 100% { transform: translate3d(0, 0, 0) rotate(-2deg); }
+            35% { transform: translate3d(-6px, -18px, 0) rotate(1.5deg); }
+            70% { transform: translate3d(8px, -10px, 0) rotate(3deg); }
+        }
+        @keyframes atlasWaveBody {
+            0%, 100% { transform: translate3d(0, -8px, 0) rotate(-4deg) scale(1); }
+            20% { transform: translate3d(4px, -22px, 0) rotate(8deg) scale(1.03); }
+            40% { transform: translate3d(-2px, -12px, 0) rotate(-6deg) scale(1.02); }
+            60% { transform: translate3d(6px, -26px, 0) rotate(10deg) scale(1.04); }
+            80% { transform: translate3d(-4px, -14px, 0) rotate(-5deg) scale(1.02); }
+        }
+        @keyframes atlasWaveArmHint {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(8deg); }
+            50% { transform: rotate(-4deg); }
+            75% { transform: rotate(10deg); }
+        }
+        @keyframes atlasTalkBounce {
+            0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 18px 28px rgba(0,0,0,0.45)); }
+            50% { transform: translateY(-10px) scale(1.05); filter: drop-shadow(0 0 22px rgba(56,189,248,0.55)); }
+        }
+        @keyframes atlasPopupIn {
+            0% { opacity: 0; transform: translateY(18px) scale(0.92); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .atlas-mascot-card {
+            position: relative;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0.25rem 0 !important;
+        }
+        .atlas-mascot-stage,
+        .atlas-home-stage {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto;
+            aspect-ratio: 1;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+        }
+        .atlas-home-stage {
+            max-width: min(100%, 460px);
+        }
+        .atlas-mascot-bob,
+        .atlas-home-bob {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            animation: atlasFloat 5s ease-in-out infinite;
+            transform-origin: 50% 88%;
+            will-change: transform;
+        }
+        .atlas-mascot-stage.is-waving .atlas-mascot-bob,
+        .atlas-home-stage.is-waving .atlas-home-bob {
+            animation: atlasWaveBody 0.45s ease-in-out 6;
+        }
+        .atlas-mascot-stage.is-waving .atlas-mascot-frame.wave,
+        .atlas-home-stage.is-waving .atlas-mascot-frame.wave {
+            animation: atlasWaveArmHint 0.45s ease-in-out 6;
+            transform-origin: 62% 38%;
+        }
+        .atlas-mascot-stage.is-talking .atlas-mascot-bob,
+        .atlas-home-stage.is-talking .atlas-home-bob,
+        #atlas-talk-popup.is-talking .atlas-popup-figure {
+            animation: atlasTalkBounce 0.65s ease-in-out infinite;
+        }
+        .atlas-mascot-frame {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.15s ease;
+            user-select: none;
+            pointer-events: none;
+            background: transparent;
+            filter: drop-shadow(0 22px 32px rgba(0, 0, 0, 0.5));
+        }
+        .atlas-mascot-frame.wave { opacity: 0; }
+        .atlas-mascot-stage.is-waving .atlas-mascot-frame.idle,
+        .atlas-home-stage.is-waving .atlas-mascot-frame.idle { opacity: 0; }
+        .atlas-mascot-stage.is-waving .atlas-mascot-frame.wave,
+        .atlas-home-stage.is-waving .atlas-mascot-frame.wave { opacity: 1; }
+        .atlas-mascot-bubble {
+            position: absolute;
+            left: 50%;
+            top: -0.25rem;
+            transform: translateX(-50%);
+            max-width: 88%;
+            padding: 0.45rem 0.75rem;
+            border-radius: 1rem;
+            background: rgba(7, 11, 20, 0.9);
+            border: 1px solid rgba(125, 211, 252, 0.4);
+            color: #E0F2FE;
+            font-size: 0.75rem;
+            font-family: "JetBrains Mono", monospace;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            z-index: 3;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+        }
+        .atlas-mascot-stage.is-waving .atlas-mascot-bubble,
+        .atlas-mascot-stage.show-bubble .atlas-mascot-bubble,
+        .atlas-home-stage.show-bubble .atlas-mascot-bubble,
+        .atlas-home-stage.is-waving .atlas-mascot-bubble {
+            opacity: 1;
+        }
+
+        /* Home hero ATLAS — character sits in open space, no frame */
+        .home-atlas-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+            align-items: center;
+            width: 100%;
+        }
+        @media (min-width: 900px) {
+            .home-atlas-layout {
+                grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+                gap: 1rem;
+            }
+        }
+        .atlas-home-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+        }
+        .atlas-home-glow {
+            position: absolute;
+            width: 70%;
+            height: 55%;
+            bottom: 8%;
+            left: 15%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56,189,248,0.22), transparent 68%);
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(8px);
+        }
+        .atlas-home-stage { z-index: 1; }
+
+        /* Floating talk popup when ATLAS speaks */
+        #atlas-talk-popup {
+            position: fixed;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 60;
+            width: min(340px, calc(100vw - 1.5rem));
+            display: none;
+            align-items: flex-end;
+            gap: 0.65rem;
+            pointer-events: none;
+        }
+        #atlas-talk-popup.open {
+            display: flex;
+            animation: atlasPopupIn 0.35s ease-out;
+            pointer-events: auto;
+        }
+        .atlas-popup-figure {
+            width: 88px;
+            height: 88px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .atlas-popup-figure img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: transparent;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+        }
+        .atlas-popup-card {
+            flex: 1;
+            background: rgba(11, 17, 32, 0.92);
+            border: 1px solid rgba(125, 211, 252, 0.35);
+            border-radius: 1rem;
+            padding: 0.75rem 0.9rem;
+            box-shadow: 0 16px 40px rgba(2, 6, 15, 0.65);
+            backdrop-filter: blur(16px);
+        }
+        .atlas-popup-card .kicker {
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7DD3FC;
+            margin-bottom: 0.25rem;
+        }
+        .atlas-popup-card .msg {
+            font-size: 0.85rem;
+            color: #F1F5F9;
+            line-height: 1.35;
+            max-height: 4.6em;
+            overflow: hidden;
+        }
+
+        /* Calm Acoustic Ring Animation for ATLAS */
+        @keyframes atlasRipple {
+            0% { transform: scale(0.92); opacity: 0.75; }
+            100% { transform: scale(1.45); opacity: 0; }
+        }
+
+        .atlas-ring-active {
+            animation: atlasRipple 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+        }
+
+        /* Custom subtle scrollbars for tablet panels */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(7, 11, 20, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(125, 211, 252, 0.22);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(125, 211, 252, 0.4);
+        }
+
+        /* Touch target minimum guarantee */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-400/30 selection:text-white">
+
+    <!-- =========================================================================
+         FULL-BLEED FLAT-VECTOR SPACE WALLPAPER & STARFIELD LAYER
+         Depicts deep midnight sky, atmospheric Mars/transit planet horizon,
+         geometric orbital transit habitat/station, and tethered EVA astronaut.
+    ========================================================================== -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-gradient-to-b from-[#060911] via-[#0B1222] to-[#0E172A]">
+        <!-- Subtle Animated Starfield Canvas -->
+        <canvas id="starfield-canvas" class="absolute inset-0 w-full h-full opacity-85"></canvas>
+
+        <!-- Flat-Vector Space Illustration (Responsive SVG Scene) -->
+        <svg id="space-wallpaper-svg" class="absolute inset-0 w-full h-full object-cover" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+                <!-- Deep Sky & Planet Atmospheric Gradients (Midnight Navy + Soft Sky Blue ONLY) -->
+                <radialGradient id="planetAtmosphericHalo" cx="78%" cy="88%" r="58%">
+                    <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.22"/>
+                    <stop offset="55%" stop-color="#1E3A5F" stop-opacity="0.12"/>
+                    <stop offset="100%" stop-color="#070B14" stop-opacity="0"/>
+                </radialGradient>
+
+                <linearGradient id="planetBodyGrad" x1="25%" y1="15%" x2="85%" y2="95%">
+                    <stop offset="0%" stop-color="#1E3A5F"/>
+                    <stop offset="45%" stop-color="#132640"/>
+                    <stop offset="100%" stop-color="#08101E"/>
+                </linearGradient>
+
+                <linearGradient id="planetRimLight" x1="0%" y1="0%" x2="100%" y2="60%">
+                    <stop offset="0%" stop-color="#BAE6FD" stop-opacity="0.65"/>
+                    <stop offset="50%" stop-color="#38BDF8" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="#0B1120" stop-opacity="0"/>
+                </linearGradient>
+
+                <linearGradient id="solarPanelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#1D3B60"/>
+                    <stop offset="100%" stop-color="#0F233C"/>
+                </linearGradient>
+
+                <linearGradient id="hullLightGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#E2E8F0"/>
+                    <stop offset="100%" stop-color="#94A3B8"/>
+                </linearGradient>
+
+                <linearGradient id="hullShadowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#64748B"/>
+                    <stop offset="100%" stop-color="#334155"/>
+                </linearGradient>
+            </defs>
+
+            <!-- Soft Atmospheric Glow Behind Planet -->
+            <rect width="1440" height="900" fill="url(#planetAtmosphericHalo)"/>
+
+            <!-- Distant Geometric Star Crosses (Flat Vector Accents) -->
+            <g fill="#BAE6FD" opacity="0.55">
+                <path d="M180 140 L182 146 L188 148 L182 150 L180 156 L178 150 L172 148 L178 146 Z"/>
+                <path d="M520 95 L521.5 100 L526.5 101.5 L521.5 103 L520 108 L518.5 103 L513.5 101.5 L518.5 100 Z"/>
+                <path d="M1260 165 L1262 172 L1269 174 L1262 176 L1260 183 L1258 176 L1251 174 L1258 172 Z"/>
+                <path d="M920 110 L921.5 114 L925.5 115.5 L921.5 117 L920 121 L918.5 117 L914.5 115.5 L918.5 114 Z"/>
+                <circle cx="310" cy="240" r="1.8" opacity="0.7"/>
+                <circle cx="680" cy="180" r="1.5" opacity="0.5"/>
+                <circle cx="1110" cy="230" r="2" opacity="0.65"/>
+                <circle cx="145" cy="420" r="1.6" opacity="0.5"/>
+            </g>
+
+            <!-- Orbital Trajectory Arcs -->
+            <ellipse cx="1120" cy="790" rx="760" ry="260" transform="rotate(-14 1120 790)" fill="none" stroke="#7DD3FC" stroke-opacity="0.12" stroke-width="1.5" stroke-dasharray="6 8"/>
+            <ellipse cx="1120" cy="790" rx="640" ry="210" transform="rotate(-14 1120 790)" fill="none" stroke="#BAE6FD" stroke-opacity="0.08" stroke-width="1"/>
+
+            <!-- Large Flat-Vector Planet (Bottom-Right Quadrant) -->
+            <g id="vector-planet">
+                <!-- Outer Atmospheric Rim -->
+                <circle cx="1160" cy="830" r="468" fill="none" stroke="url(#planetRimLight)" stroke-width="10"/>
+                <!-- Main Planet Sphere -->
+                <circle cx="1160" cy="830" r="460" fill="url(#planetBodyGrad)"/>
+                <!-- Flat-Vector Atmospheric Bands & Geometric Surface Contours -->
+                <path d="M740 670 Q960 610 1240 660 T1580 730 L1580 775 Q1250 715 950 660 T720 710 Z" fill="#23446E" opacity="0.45"/>
+                <path d="M705 760 Q980 710 1290 770 T1600 840 L1600 895 Q1280 830 970 775 T700 815 Z" fill="#183152" opacity="0.55"/>
+                <path d="M780 565 Q1020 520 1270 565 L1255 592 Q1010 550 765 595 Z" fill="#38BDF8" opacity="0.12"/>
+                <!-- Crisp Terminator Rim Highlight -->
+                <path d="M718 710 A460 460 0 0 1 1390 432" fill="none" stroke="#BAE6FD" stroke-width="2.5" stroke-opacity="0.5"/>
+            </g>
+
+            <!-- Flat-Vector Orbital Transit Habitat / Space Station (Upper Left / Mid-Left) -->
+            <g id="vector-station" transform="translate(270, 265) rotate(-18)">
+                <!-- Main Structural Truss Beam -->
+                <rect x="-230" y="-4" width="460" height="8" rx="2" fill="#475569"/>
+                <rect x="-230" y="-4" width="460" height="3" fill="#94A3B8"/>
+
+                <!-- Port Solar Array Wing (Left) -->
+                <g transform="translate(-175, 0)">
+                    <rect x="-32" y="-118" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <rect x="6" y="-118" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <rect x="-32" y="12" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <rect x="6" y="12" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <!-- Solar Cell Grid Lines -->
+                    <line x1="-32" y1="-65" x2="-6" y2="-65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                    <line x1="6" y1="-65" x2="32" y2="-65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                    <line x1="-32" y1="65" x2="-6" y2="65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                    <line x1="6" y1="65" x2="32" y2="65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                </g>
+
+                <!-- Starboard Solar Array Wing (Right) -->
+                <g transform="translate(175, 0)">
+                    <rect x="-32" y="-118" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <rect x="6" y="-118" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <rect x="-32" y="12" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <rect x="6" y="12" width="26" height="106" rx="2" fill="url(#solarPanelGrad)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.55"/>
+                    <line x1="-32" y1="-65" x2="-6" y2="-65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                    <line x1="6" y1="-65" x2="32" y2="-65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                    <line x1="-32" y1="65" x2="-6" y2="65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                    <line x1="6" y1="65" x2="32" y2="65" stroke="#7DD3FC" stroke-opacity="0.3" stroke-width="1"/>
+                </g>
+
+                <!-- Central Habitation Modules (Flat Vector Cylinders) -->
+                <rect x="-78" y="-22" width="156" height="44" rx="10" fill="url(#hullLightGrad)"/>
+                <rect x="-78" y="4" width="156" height="18" rx="6" fill="url(#hullShadowGrad)" opacity="0.65"/>
+                <!-- Module Docking Rings & Viewport Windows -->
+                <rect x="-42" y="-24" width="8" height="48" rx="2" fill="#1E293B"/>
+                <rect x="34" y="-24" width="8" height="48" rx="2" fill="#1E293B"/>
+                <circle cx="-18" cy="-4" r="4" fill="#38BDF8"/>
+                <circle cx="0" cy="-4" r="4" fill="#38BDF8"/>
+                <circle cx="18" cy="-4" r="4" fill="#38BDF8"/>
+
+                <!-- Dorsal Command Cupola & Comms Dish -->
+                <rect x="-24" y="-44" width="48" height="22" rx="6" fill="#CBD5E1"/>
+                <path d="M-14 -44 L14 -44 L10 -52 L-10 -52 Z" fill="#38BDF8" opacity="0.85"/>
+                <line x1="0" y1="-52" x2="0" y2="-76" stroke="#94A3B8" stroke-width="2"/>
+                <circle cx="0" cy="-78" r="3" fill="#7DD3FC"/>
+
+                <!-- Ventral Airlock Node -->
+                <rect x="-18" y="22" width="36" height="24" rx="5" fill="#94A3B8"/>
+                <rect x="-10" y="46" width="20" height="8" rx="2" fill="#334155"/>
+            </g>
+
+            <!-- Flexible EVA Safety Tether Connecting Station Airlock to Floating Astronaut -->
+            <path d="M292 315 C 345 415, 445 435, 515 415" fill="none" stroke="#BAE6FD" stroke-width="1.6" stroke-dasharray="5 4" stroke-opacity="0.55"/>
+
+            <!-- Floating Flat-Vector Astronaut in EVA Suit -->
+            <g id="vector-astronaut" class="animate-eva">
+                <g transform="translate(545, 405) rotate(16)">
+                    <!-- PLSS Life Support Backpack -->
+                    <rect x="-22" y="-24" width="16" height="42" rx="5" fill="#94A3B8"/>
+                    <rect x="-20" y="-18" width="4" height="12" rx="1" fill="#38BDF8"/>
+
+                    <!-- Legs (Flat Vector Articulated Limbs) -->
+                    <path d="M-6 22 L-14 52 L-4 55 L4 24 Z" fill="#E2E8F0"/>
+                    <path d="M6 22 L14 50 L23 47 L14 20 Z" fill="#CBD5E1"/>
+                    <!-- EVA Boots -->
+                    <rect x="-18" y="50" width="14" height="7" rx="3" fill="#475569"/>
+                    <rect x="11" y="46" width="14" height="7" rx="3" fill="#475569"/>
+
+                    <!-- Torso Suit -->
+                    <rect x="-13" y="-20" width="28" height="44" rx="10" fill="#F8FAFC"/>
+                    <!-- Chest Display & Control Module (DCM) -->
+                    <rect x="-6" y="-8" width="14" height="16" rx="3" fill="#1E293B"/>
+                    <circle cx="-1" cy="-2" r="2" fill="#38BDF8"/>
+                    <circle cx="4" cy="-2" r="2" fill="#BAE6FD"/>
+                    <rect x="-3" y="3" width="8" height="2.5" rx="1" fill="#7DD3FC"/>
+
+                    <!-- Arms -->
+                    <path d="M-12 -14 L-30 2 L-24 9 L-8 -6 Z" fill="#E2E8F0"/>
+                    <path d="M13 -14 L32 -4 L28 4 L10 -6 Z" fill="#CBD5E1"/>
+                    <!-- Gloves -->
+                    <circle cx="-28" cy="6" r="4.5" fill="#64748B"/>
+                    <circle cx="31" cy="0" r="4.5" fill="#64748B"/>
+
+                    <!-- Helmet & Reflective Sky-Blue Visor -->
+                    <circle cx="2" cy="-34" r="17" fill="#F8FAFC"/>
+                    <path d="M-5 -43 C6 -45, 16 -39, 15 -29 C14 -22, 4 -21, -5 -24 C-9 -29, -9 -38, -5 -43 Z" fill="#0F294A"/>
+                    <!-- Visor Specular Reflection -->
+                    <path d="M-2 -40 C4 -41, 10 -38, 10 -33" fill="none" stroke="#7DD3FC" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+                </g>
+            </g>
+        </svg>
+
+        <!-- Subtle Vignette for Crisp Glass Panel Contrast -->
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_35%,rgba(5,8,17,0.68)_100%)]"></div>
+    </div>
+
+    <!-- =========================================================================
+         PERSISTENT TOP MISSION TELEMETRY & NAVIGATION BAR
+         Visible across screens (compact on Setup/Home, full dual-clock on Hub/ATLAS)
+    ========================================================================== -->
+    <header id="top-mission-bar" class="relative z-30 w-full px-4 pt-3 pb-2">
+        <div class="max-w-[1380px] mx-auto glass-panel rounded-2xl px-4 py-2 flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- Left: Brand Identity & Simulated Data Compliance Badge -->
+            <div class="flex items-center gap-3">
+                <button onclick="navigateTo('home')" class="touch-target flex items-center gap-2.5 text-left group focus:outline-none">
+                    <div class="w-9 h-9 rounded-xl bg-sky-400/15 border border-sky-300/30 flex items-center justify-center text-sky-300 group-hover:bg-sky-400/25 transition-colors">
+                        <!-- Minimalist Orbital Crosshair SVG -->
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="8"/>
+                            <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+                            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold tracking-tight text-white text-sm sm:text-base">Astro Health Hub</span>
+                            <span class="px-2 py-0.5 rounded-md bg-sky-400/15 border border-sky-300/30 text-sky-200 font-mono text-[10px] font-semibold tracking-wider uppercase">
+                                Simulated Data
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-300/80 hidden sm:block">Mars transit · Simulated · ATLAS Advisory (Recommend Only)</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Center: Dual Clocks Side-by-Side (Space Time = Ship MET | Earth Time = UTC) -->
+            <div id="dual-clocks-container" class="flex items-center gap-2 sm:gap-3 bg-midnight-950/60 border border-sky-300/15 rounded-xl px-3 py-1.5">
+                <!-- Space Time: Ship MET -->
+                <div class="flex items-center gap-2 pr-2 sm:pr-3 border-r border-slate-700/70">
+                    <span class="w-2 h-2 rounded-full bg-sky-400 pulse-subtle"></span>
+                    <div>
+                        <div class="text-[10px] font-mono uppercase tracking-wider text-sky-300/90">Space Time · Ship MET</div>
+                        <div id="clock-met" class="font-mono text-xs sm:text-sm font-semibold text-white tabular-nums">MD 142 · 14:28:09</div>
+                    </div>
+                </div>
+                <!-- Earth Time: UTC -->
+                <div class="flex items-center gap-2">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-slate-300">Earth Time · UTC</span>
+                            <span class="text-[10px] font-mono text-sky-200/80 hidden md:inline">(OWLT 11m 42s)</span>
+                        </div>
+                        <div id="clock-utc" class="font-mono text-xs sm:text-sm font-semibold text-slate-100 tabular-nums">19:28:09 UTC</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Screen Navigation Pills (44px+ Touch Targets) -->
+            <nav aria-label="Mission Screens" class="flex items-center gap-1.5">
+                <button data-nav="setup" onclick="navigateTo('setup')" class="nav-pill touch-target px-3 py-2 rounded-xl text-xs font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5">
+                    Setup
+                </button>
+                <button data-nav="home" onclick="navigateTo('home')" class="nav-pill touch-target px-3 py-2 rounded-xl text-xs font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5">
+                    Home
+                </button>
+                <button data-nav="hub" onclick="navigateTo('hub')" class="nav-pill touch-target px-3 py-2 rounded-xl text-xs font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5">
+                    Crew Hub
+                </button>
+                <button data-nav="atlas" onclick="navigateTo('atlas')" class="nav-pill touch-target px-3 py-2 rounded-xl text-xs font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-1.5">
+                    <span id="nav-mic-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                    Ask ATLAS
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- =========================================================================
+         MAIN VIEWPORT CONTAINER (4 SCREENS)
+         Optimized for Tablet Landscape (~1180x760) with zero clutter
+    ========================================================================== -->
+    <main class="relative z-20 flex-1 flex flex-col justify-center max-w-[1380px] w-full mx-auto px-4 py-2">
+
+        <!-- =====================================================================
+             SCREEN 1: MISSION SETUP
+             Centered glass card: crew list, wearable pairing chips (WB-#### / VS-####),
+             and prominent Begin button that initializes the microphone.
+        ====================================================================== -->
+        <section id="screen-setup" class="screen-view w-full flex items-center justify-center py-4">
+            <div class="glass-panel-elevated rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6">
+                
+                <!-- Setup Header -->
+                <div class="flex flex-wrap items-start justify-between gap-4 border-b border-sky-300/15 pb-5">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-sky-400/10 border border-sky-300/25 text-sky-300 font-mono text-[11px] uppercase tracking-wider mb-2">
+                            Pre-Watch Telemetry Sync · Simulated
+                        </div>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Mission Setup</h1>
+                        <p class="text-sm text-slate-300 mt-1">Verify crew biometric wearables and initialize ATLAS voice monitoring.</p>
+                    </div>
+                    <div class="text-right font-mono text-xs text-slate-400">
+                        <div>VEHICLE: <span class="text-slate-200" id="setupVehicle">Mars transit</span></div>
+                        <div>TRAJECTORY: <span class="text-sky-300">SOL-MARS TMI</span></div>
+                    </div>
+                </div>
+
+                <!-- Crew List & Wearable Pairing Chips (WB-#### / VS-####) -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-mono uppercase tracking-wider text-sky-300">Crew Roster &amp; Wearable Pairing (Tap to Toggle Sync)</h2>
+                        <span id="paired-count-label" class="text-xs font-mono text-slate-300">8 / 8 Sensors Paired</span>
+                    </div>
+
+                    <div id="setup-crew-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Populated dynamically by JS with 44px+ touch target chips -->
+                    </div>
+                </div>
+
+                <!-- Advisory Disclaimer & Mic Status -->
+                <div class="rounded-2xl bg-midnight-950/60 border border-sky-300/15 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-sky-300 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 8v4M12 16h.01" stroke-linecap="round"/>
+                        </svg>
+                        <div class="text-xs text-slate-300 leading-relaxed">
+                            <strong class="text-white font-semibold">ATLAS Advisory Protocol:</strong> Provides wellness triage recommendations only — never medical diagnosis. All vital signs and sensor feeds are simulated.
+                        </div>
+                    </div>
+                    <span id="setup-mic-status" class="shrink-0 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700 font-mono text-[11px] text-slate-300">
+                        MIC: STANDBY
+                    </span>
+                </div>
+
+                <!-- Big Begin Button (Starts Mic & Launches Experience) -->
+                <div class="pt-1 flex flex-col sm:flex-row items-center gap-3">
+                    <button id="btn-begin-mission" type="button" onclick="beginMission()" class="touch-target w-full py-3.5 px-6 rounded-2xl bg-sky-400 hover:bg-sky-300 active:scale-[0.99] text-midnight-950 font-bold text-base tracking-tight transition-all flex items-center justify-center gap-3 shadow-lg shadow-sky-950/50 cursor-pointer">
+                        <span>Begin Mission</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             SCREEN 2: HOME (BRAND-FIRST, WALLPAPER DOMINANT)
+             Large "Astro Health Hub", one short headline, one CTA "Enter crew hub"
+        ====================================================================== -->
+        <section id="screen-home" class="screen-view hidden w-full flex-1 flex flex-col justify-between py-6 sm:py-10 px-2 sm:px-6">
+            <div class="home-atlas-layout flex-1">
+                <div class="space-y-5 mt-2 sm:mt-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel text-xs font-mono text-sky-200 tracking-wide">
+                        <span class="w-2 h-2 rounded-full bg-sky-400 pulse-subtle"></span>
+                        MEET ATLAS · SI (SUPER INTELLIGENCE)
+                    </div>
+
+                    <h1 class="text-4xl sm:text-6xl font-bold text-white tracking-tight leading-[1.06]">
+                        Astro Health Hub
+                    </h1>
+
+                    <p class="text-base sm:text-xl text-slate-200/95 font-normal leading-relaxed max-w-lg">
+                        After crew sign-in, ATLAS is your ship-side SI — watches simulated vitals, listens for questions, and recommends next steps. Never diagnoses.
+                    </p>
+
+                    <div class="pt-2 flex flex-wrap items-center gap-3">
+                        <button onclick="navigateTo('hub')" class="touch-target px-8 py-4 rounded-2xl bg-sky-400 hover:bg-sky-300 active:scale-[0.99] text-midnight-950 font-bold text-base tracking-tight transition-all flex items-center gap-3 shadow-xl shadow-midnight-950/60 cursor-pointer">
+                            <span>Enter crew hub</span>
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <button type="button" onclick="waveAtlas('Hi — I\'m ATLAS. Tap Ask ATLAS anytime.')" class="touch-target px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-sm cursor-pointer">
+                            Wave at ATLAS
+                        </button>
+                        <button type="button" onclick="navigateTo('atlas')" class="touch-target px-5 py-3 rounded-2xl bg-sky-400/15 hover:bg-sky-400/25 border border-sky-300/35 text-sky-100 font-semibold text-sm cursor-pointer">
+                            Ask ATLAS
+                        </button>
+                    </div>
+                </div>
+
+                <div class="atlas-home-wrap">
+                    <div class="atlas-home-glow" aria-hidden="true"></div>
+                    <div id="atlas-home-mascot" class="atlas-home-stage" role="img" aria-label="ATLAS SI mascot" title="Tap ATLAS to wave">
+                        <div class="atlas-home-bob">
+                            <img class="atlas-mascot-frame idle" src="assets/atlas-cutout.png" alt="ATLAS" />
+                            <img class="atlas-mascot-frame wave" src="assets/atlas-cutout-wave.png" alt="ATLAS waving" />
+                        </div>
+                        <div id="atlas-home-bubble" class="atlas-mascot-bubble">Hi — I'm ATLAS (SI)</div>
+                    </div>
+                    <p class="mt-1 text-[11px] font-mono text-sky-200/90 text-center relative z-[1]">Tap ATLAS to wave</p>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-8 flex flex-wrap items-center justify-between gap-4 text-xs font-mono text-slate-300/80">
+                <div class="glass-panel px-3.5 py-2 rounded-xl">
+                    ALL BIOMETRICS SIMULATED · ATLAS RECOMMENDS ONLY (NON-DIAGNOSTIC)
+                </div>
+                <div class="glass-panel px-3.5 py-2 rounded-xl">
+                    CREW ONLINE: 4 / 4 · SENSORS NOMINAL
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             SCREEN 3: CREW HUB (3-COLUMN OPERATIONAL VIEW)
+             Col 1: Crew list (4 statuses: OK, LOG/Watch, ACT NOW, Needs Earth)
+             Col 2: Selected astronaut (body lights, vitals, 7-day chart)
+             Col 3: Triage recommendations + Ask ATLAS launcher
+        ====================================================================== -->
+        <section id="screen-hub" class="screen-view hidden w-full">
+        <div class="mb-3 flex flex-wrap gap-2 items-center" id="hub-actions">
+      <button type="button" id="emergencyBtn" class="touch-target px-3 py-2 rounded-xl bg-rose-500/20 border border-rose-400/40 text-xs text-rose-200">Emergency guide</button>
+      <button type="button" id="demoBtn" class="touch-target px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">Run demo: Ortega rough night</button>
+      <button type="button" id="swapBandBtn" class="touch-target px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">Swap Ortega band</button>
+      <button type="button" id="quietBandBtn" class="touch-target px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">Band goes quiet</button>
+      <button type="button" id="checkInBtn" class="touch-target px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">Morning check-in</button>
+      <button type="button" id="earthBtn" class="touch-target px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">Earth summary</button>
+      <button type="button" id="evaBtn" class="touch-target px-3 py-2 rounded-xl bg-sky-400/15 border border-sky-300/35 text-xs text-sky-200 font-semibold">Start EVA (selected)</button>
+      <a href="Astro-Health-Hub-Demo-Slides-WIP.pdf" download="Astro-Health-Hub-Demo-Slides-WIP.pdf" class="touch-target px-3 py-2 rounded-xl bg-sky-400/15 border border-sky-300/35 text-xs text-sky-200 font-semibold inline-flex items-center">Download demo slides (PDF)</a>
+      <span id="summary" class="flex flex-wrap items-center gap-2 text-xs ml-auto"></span>
+    </div>
+            <div id="eva-banner" class="hidden mb-3 rounded-2xl px-4 py-3 border border-sky-300/40 bg-sky-400/10 flex flex-wrap items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-[10px] font-mono uppercase tracking-wider text-sky-300">EVA in progress · simulated</div>
+                <div id="eva-banner-text" class="text-sm font-semibold text-white">—</div>
+              </div>
+              <button type="button" id="evaEndBtn" class="touch-target px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-xs text-white">End EVA / return to ship</button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+                
+                <!-- COLUMN 1: CREW LIST (3 cols on 12-col grid) -->
+                <div class="lg:col-span-3 glass-panel rounded-2xl p-4 flex flex-col justify-between gap-3">
+                    <div>
+                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-sky-300/15">
+                            <div>
+                                <h2 class="text-sm font-semibold text-white tracking-tight">Transit Crew (4)</h2>
+                                <p class="text-[11px] font-mono text-slate-400">SIMULATED STATUS</p>
+                            </div>
+                            <span class="px-2 py-0.5 rounded bg-midnight-950/70 border border-sky-300/20 font-mono text-[10px] text-sky-300">
+                                SHIFT B
+                            </span>
+                        </div>
+
+                        <!-- Crew Selector Cards (Rendered via JS, 44px+ touch targets) -->
+                        <div id="hub-crew-list" class="space-y-2.5"></div>
+                    </div>
+
+                    <!-- Status Color Legend -->
+                    <div class="pt-3 border-t border-sky-300/15 space-y-1.5">
+                        <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400">Triage Status Key</div>
+                        <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                            <div class="flex items-center gap-1.5 text-slate-200">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#38BDF8]"></span> OK
+                            </div>
+                            <div class="flex items-center gap-1.5 text-slate-200">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#FBBF24]"></span> LOG / Watch
+                            </div>
+                            <div class="flex items-center gap-1.5 text-slate-200">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#FB7185]"></span> ACT NOW
+                            </div>
+                            <div class="flex items-center gap-1.5 text-slate-200">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#BAE6FD]"></span> Needs Earth
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: SELECTED ASTRONAUT TELEMETRY (5 cols on 12-col grid) -->
+                <div class="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col justify-between gap-3">
+                    <!-- Selected Crew Header -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-sky-300/15">
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 id="hub-astro-name" class="text-lg font-bold text-white tracking-tight">—</h2>
+                                <span id="hub-astro-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold">OK</span>
+                                <span id="hub-eva-pill" class="hidden px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-400/25 text-sky-100 border border-sky-300/45">OUTSIDE · EVA</span>
+                            </div>
+                            <p id="hub-astro-meta" class="text-xs font-mono text-slate-300 mt-0.5">Mission Commander · — · SIMULATED</p>
+                        </div>
+                    </div>
+
+                    <!-- Middle Row: Interactive Body Lights Silhouette + Vitals Grid -->
+                    <div class="grid grid-cols-12 gap-3 items-center">
+                        <!-- Human Body Lights SVG Diagram -->
+                        <div class="col-span-5 bg-midnight-950/65 border border-sky-300/15 rounded-2xl p-2.5 flex flex-col items-center justify-between h-full">
+                            <div class="w-full flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
+                                <span>BODY LIGHTS</span>
+                                <span id="body-zone-label" class="text-sky-300">ALL NOMINAL</span>
+                            </div>
+                            
+                            <svg id="body-lights-svg" class="w-full max-w-[130px] h-[185px] my-1" viewBox="0 0 140 220" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Subtle Anatomical Grid -->
+                                <line x1="70" y1="8" x2="70" y2="212" stroke="#38BDF8" stroke-opacity="0.12" stroke-dasharray="3 3"/>
+                                <line x1="15" y1="72" x2="125" y2="72" stroke="#38BDF8" stroke-opacity="0.12" stroke-dasharray="3 3"/>
+                                <line x1="15" y1="125" x2="125" y2="125" stroke="#38BDF8" stroke-opacity="0.12" stroke-dasharray="3 3"/>
+
+                                <!-- Stylized Clean Vector Astronaut Silhouette -->
+                                <g fill="#1E293B" stroke="#64748B" stroke-width="1.4">
+                                    <!-- Head -->
+                                    <circle cx="70" cy="26" r="15"/>
+                                    <!-- Neck & Shoulders / Torso -->
+                                    <path d="M52 46 Q70 42 88 46 L96 86 L88 124 L52 124 L44 86 Z"/>
+                                    <!-- Left & Right Arms -->
+                                    <path d="M44 50 L28 96 L35 100 L49 62 Z"/>
+                                    <path d="M96 50 L112 96 L105 100 L91 62 Z"/>
+                                    <!-- Left & Right Legs -->
+                                    <path d="M53 124 L47 198 L58 198 L66 136 Z"/>
+                                    <path d="M87 124 L93 198 L82 198 L74 136 Z"/>
+                                </g>
+
+                                <!-- BODY LIGHT NODES (Color-coded dynamically by JS) -->
+                                <!-- 1. Neuro / Ocular / Head Node -->
+                                <g class="cursor-pointer" onclick="highlightBodyZone('Neuro / Circadian')">
+                                    <circle id="node-head-halo" cx="70" cy="26" r="11" fill="#38BDF8" fill-opacity="0.22"/>
+                                    <circle id="node-head" cx="70" cy="26" r="5" fill="#38BDF8" stroke="#070B14" stroke-width="1.5"/>
+                                </g>
+
+                                <!-- 2. Cardiopulmonary / Chest Node -->
+                                <g class="cursor-pointer" onclick="highlightBodyZone('Cardiopulmonary')">
+                                    <circle id="node-chest-halo" cx="74" cy="68" r="13" fill="#38BDF8" fill-opacity="0.25"/>
+                                    <circle id="node-chest" cx="74" cy="68" r="6" fill="#38BDF8" stroke="#070B14" stroke-width="1.5"/>
+                                </g>
+
+                                <!-- 3. Metabolic / Core Hydration Node -->
+                                <g class="cursor-pointer" onclick="highlightBodyZone('Metabolic / Hydration')">
+                                    <circle id="node-core-halo" cx="70" cy="102" r="11" fill="#38BDF8" fill-opacity="0.22"/>
+                                    <circle id="node-core" cx="70" cy="102" r="5" fill="#38BDF8" stroke="#070B14" stroke-width="1.5"/>
+                                </g>
+
+                                <!-- 4. Musculoskeletal / Lower Extremity Node -->
+                                <g class="cursor-pointer" onclick="highlightBodyZone('Musculoskeletal Load')">
+                                    <circle id="node-legs-halo" cx="54" cy="158" r="10" fill="#38BDF8" fill-opacity="0.22"/>
+                                    <circle id="node-legs" cx="54" cy="158" r="4.5" fill="#38BDF8" stroke="#070B14" stroke-width="1.5"/>
+                                    <circle id="node-legs-r-halo" cx="86" cy="158" r="10" fill="#38BDF8" fill-opacity="0.22"/>
+                                    <circle id="node-legs-r" cx="86" cy="158" r="4.5" fill="#38BDF8" stroke="#070B14" stroke-width="1.5"/>
+                                </g>
+                            </svg>
+
+                            <div class="text-[10px] font-mono text-slate-400 text-center">Tap node for zone focus</div>
+                        </div>
+
+                        <!-- Simulated Vital Signs Grid -->
+                        <div class="col-span-7 grid grid-cols-2 gap-2.5">
+                            <div class="bg-midnight-950/65 border border-sky-300/15 rounded-xl p-3">
+                                <div class="text-[10px] font-mono uppercase text-slate-400">Heart Rate (Sim)</div>
+                                <div class="mt-1 flex items-baseline gap-1.5">
+                                    <span id="vital-hr" class="text-2xl font-bold text-white tabular-nums">64</span>
+                                    <span class="text-xs font-mono text-slate-400">bpm</span>
+                                </div>
+                                <div id="vital-hr-note" class="text-[11px] text-sky-300 mt-0.5">Resting baseline</div>
+                            </div>
+
+                            <div class="bg-midnight-950/65 border border-sky-300/15 rounded-xl p-3">
+                                <div class="text-[10px] font-mono uppercase text-slate-400">SpO2 Sat (Sim)</div>
+                                <div class="mt-1 flex items-baseline gap-1.5">
+                                    <span id="vital-spo2" class="text-2xl font-bold text-white tabular-nums">98</span>
+                                    <span class="text-xs font-mono text-slate-400">%</span>
+                                </div>
+                                <div id="vital-spo2-note" class="text-[11px] text-sky-300 mt-0.5">Cabin O2 21.4%</div>
+                            </div>
+
+                            <div class="bg-midnight-950/65 border border-sky-300/15 rounded-xl p-3">
+                                <div class="text-[10px] font-mono uppercase text-slate-400">Core Temp (Sim)</div>
+                                <div class="mt-1 flex items-baseline gap-1.5">
+                                    <span id="vital-temp" class="text-2xl font-bold text-white tabular-nums">36.8</span>
+                                    <span class="text-xs font-mono text-slate-400">°C</span>
+                                </div>
+                                <div id="vital-temp-note" class="text-[11px] text-slate-300 mt-0.5">Thermoreg stable</div>
+                            </div>
+
+                            <div class="bg-midnight-950/65 border border-sky-300/15 rounded-xl p-3">
+                                <div class="text-[10px] font-mono uppercase text-slate-400">Recovery (Sim)</div>
+                                <div class="mt-1 flex items-baseline gap-1.5">
+                                    <span id="vital-rec" class="text-2xl font-bold text-white tabular-nums">91</span>
+                                    <span class="text-xs font-mono text-slate-400">%</span>
+                                </div>
+                                <div id="vital-rec-note" class="text-[11px] text-slate-300 mt-0.5">7.4h sleep cycle</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7-Day Telemetry Trend Chart -->
+                    <div class="bg-midnight-950/65 border border-sky-300/15 rounded-2xl p-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <div>
+                                <span class="text-xs font-semibold text-white">7-Day Mission Trend</span>
+                                <span class="text-[10px] font-mono text-slate-400 ml-1.5">(SIMULATED MD 136–142)</span>
+                            </div>
+                            <div class="flex items-center gap-1 bg-midnight-900/90 p-0.5 rounded-lg border border-slate-700/70">
+                                <button onclick="setChartMetric('hr')" data-metric="hr" class="chart-tab px-2.5 py-1 rounded-md text-[11px] font-mono bg-sky-400/20 text-sky-200 cursor-pointer">HR</button>
+                                <button onclick="setChartMetric('recovery')" data-metric="recovery" class="chart-tab px-2.5 py-1 rounded-md text-[11px] font-mono text-slate-400 hover:text-white cursor-pointer">Recovery</button>
+                                <button onclick="setChartMetric('strain')" data-metric="strain" class="chart-tab px-2.5 py-1 rounded-md text-[11px] font-mono text-slate-400 hover:text-white cursor-pointer">Load</button>
+                            </div>
+                        </div>
+                        <div class="w-full h-[108px] chart-frame relative">
+                            <canvas id="trendChart" class="w-full h-full absolute inset-0" aria-label="7-day sleep and HR"></canvas>
+                            <svg id="seven-day-chart" hidden class="w-full h-full overflow-visible" viewBox="0 0 420 110" preserveAspectRatio="none"></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 3: TRIAGE & ASK ATLAS (4 cols on 12-col grid) -->
+                <div class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col justify-between gap-3">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between pb-2.5 border-b border-sky-300/15">
+                            <div>
+                                <h2 class="text-sm font-semibold text-white tracking-tight">ATLAS Triage &amp; Guidance</h2>
+                                <p class="text-[11px] font-mono text-sky-300">RECOMMEND ONLY — NEVER DIAGNOSE</p>
+                            </div>
+                            <span id="triage-priority-pill" class="px-2.5 py-1 rounded-lg font-mono text-[11px] font-semibold bg-sky-400/15 text-sky-300 border border-sky-300/30">
+                                ROUTINE
+                            </span>
+                        </div>
+
+                        <!-- Non-Diagnostic Summary Box -->
+                        <div class="rounded-xl bg-midnight-950/65 border border-sky-300/15 p-3">
+                            <div class="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1">Simulated Telemetry Observation</div>
+                            <p id="triage-observation" class="text-xs sm:text-sm text-slate-100 leading-relaxed">
+                                Biometric parameters remain within nominal transit envelope. Sleep efficiency and resting heart rate variability indicate steady circadian adaptation.
+                            </p>
+                        </div>
+
+                        <!-- Actionable Recommendations Checklist (44px+ touch targets) -->
+                        <div class="space-y-2">
+                            <div class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Recommended Actions (Tap to Log)</div>
+                            <div id="triage-actions-list" class="space-y-2">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Ask ATLAS Card -->
+                    <div class="rounded-2xl bg-sky-400/10 border border-sky-300/25 p-3.5 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-sky-400 pulse-subtle"></span>
+                                <span class="text-xs font-semibold text-white">Ask ATLAS Voice &amp; Text</span>
+                            </div>
+                            <span class="text-[10px] font-mono text-sky-200">CONTEXT: <span id="atlas-context-crew">CREW</span></span>
+                        </div>
+                        <p class="text-xs text-slate-300">
+                            Query mission wellness protocols, log crew symptoms, or package Earth async telemetry.
+                        </p>
+                        <button onclick="openAtlasForSelectedCrew()" class="touch-target w-full py-2.5 px-4 rounded-xl bg-sky-400 hover:bg-sky-300 text-midnight-950 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke-linecap="round"/>
+                            </svg>
+                            <span>Open ATLAS Console</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             SCREEN 4: ASK ATLAS
+             Listening indicator, Captions (Heard / ATLAS), Typed Ask backup,
+             and Settings (Quiet mode).
+        ====================================================================== -->
+        <section id="screen-atlas" class="screen-view hidden w-full">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                
+                <!-- Left / Main Console: Listening Indicator, Captions & Typed Ask Backup (8 cols) -->
+                <div class="lg:col-span-8 glass-panel-elevated rounded-3xl p-5 sm:p-6 flex flex-col justify-between gap-4">
+                    
+                    <!-- Top Header + Listening Visualizer -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-sky-300/15">
+                        <div class="flex items-center gap-4">
+                            <!-- Calm Concentric Acoustic Listening Indicator -->
+                            <button id="atlas-mic-toggle" onclick="toggleAtlasListening()" aria-label="Toggle ATLAS Microphone" class="touch-target relative w-16 h-16 rounded-2xl bg-sky-400/15 border border-sky-300/35 flex items-center justify-center text-sky-300 hover:bg-sky-400/25 transition-all cursor-pointer shrink-0">
+                                <span id="atlas-ring-1" class="atlas-ring-active absolute inset-0 rounded-2xl border border-sky-300/50"></span>
+                                <svg class="w-7 h-7 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h1 class="text-xl font-bold text-white tracking-tight">Ask ATLAS</h1>
+                                    <span id="atlas-listening-pill" class="px-2.5 py-0.5 rounded-full bg-sky-400/20 border border-sky-300/35 text-sky-200 font-mono text-[11px] font-semibold">
+                                        LISTENING
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1">
+                                    Ship-Side Advisory SI (Super Intelligence) · <span class="text-sky-300 font-medium">Recommend Only — Never Diagnose</span> · Simulated Data
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Simulated Voice Demo Trigger Chips -->
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button type="button" id="relistenBtnAtlas" class="touch-target px-3 py-2 rounded-xl bg-midnight-950/70 hover:bg-sky-400/15 border border-sky-300/20 text-xs text-sky-200 transition-colors cursor-pointer">
+                                Relisten mic
+                            </button>
+                            <button onclick="simulateVoiceTurn('medic check for Aisha')" class="touch-target px-3 py-2 rounded-xl bg-midnight-950/70 hover:bg-sky-400/15 border border-sky-300/20 text-xs text-sky-200 transition-colors cursor-pointer">
+                                Demo: medic check Aisha
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Captions Split: Heard (Crew) & ATLAS (Advisory) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 flex-1">
+                        <!-- Heard Caption Box -->
+                        <div class="rounded-2xl bg-midnight-950/70 border border-sky-300/15 p-4 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Heard · Crew Input</span>
+                                    <span id="heard-source-tag" class="text-[10px] font-mono text-sky-300">VOICE / TEXT</span>
+                                </div>
+                                <p id="caption-heard" class="text-sm sm:text-base text-white font-medium leading-relaxed">—</p>
+                            </div>
+                            <div class="pt-3 mt-3 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                                <span>SPEAKER: CREW CONSOLE</span>
+                                <span id="caption-timestamp">MD 142 · 14:28</span>
+                            </div>
+                        </div>
+
+                        <!-- ATLAS Advisory Caption Box -->
+                        <div class="rounded-2xl bg-sky-950/35 border border-sky-300/25 p-4 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-mono uppercase tracking-wider text-sky-300">ATLAS · Advisory Response</span>
+                                    <span class="px-2 py-0.5 rounded bg-sky-400/15 text-sky-200 font-mono text-[10px]">NON-DIAGNOSTIC</span>
+                                </div>
+                                <p id="caption-atlas" class="text-sm sm:text-base text-slate-100 leading-relaxed">—</p>
+                            </div>
+                            <div class="pt-3 mt-3 border-t border-sky-300/15 flex items-center justify-between text-[11px] font-mono text-sky-200/80">
+                                <span>MODE: RECOMMEND ONLY</span>
+                                <span>CONFIDENCE: SIMULATED</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Prompt Chips + Typed Ask Backup Bar -->
+                    <div class="space-y-2.5 pt-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-[11px] font-mono text-slate-400">QUICK QUERIES:</span>
+                            <button onclick="submitAtlasQuery('Atlas, how is Ortega?')" class="touch-target px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition-colors cursor-pointer">
+                                Ortega status
+                            </button>
+                            <button onclick="submitAtlasQuery('Earth summary')" class="touch-target px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition-colors cursor-pointer">
+                                Earth summary
+                            </button>
+                            <button onclick="submitAtlasQuery('Atlas, crew status')" class="touch-target px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition-colors cursor-pointer">
+                                Crew status
+                            </button>
+                            <button onclick="submitAtlasQuery('Atlas, start EVA for Kowalski')" class="touch-target px-3 py-1.5 rounded-xl bg-sky-400/15 hover:bg-sky-400/25 border border-sky-300/30 text-xs text-sky-200 transition-colors cursor-pointer">
+                                Start EVA · Kowalski
+                            </button>
+                            <button onclick="submitAtlasQuery('Atlas, end EVA')" class="touch-target px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition-colors cursor-pointer">
+                                End EVA
+                            </button>
+                        </div>
+
+                        <form onsubmit="handleTypedAskSubmit(event)" class="flex items-center gap-2.5">
+                            <label for="typed-ask-input" class="sr-only">Typed Ask backup input</label>
+                            <input 
+                                id="typed-ask-input" 
+                                type="text" 
+                                placeholder='Typed Ask — e.g. "Atlas, medic check for Aisha"' 
+                                class="touch-target flex-1 rounded-2xl bg-midnight-950/80 border border-sky-300/25 focus:border-sky-300 focus:outline-none px-4 py-3 text-sm text-white placeholder-slate-400"
+                            />
+                            <button type="submit" class="touch-target px-6 py-3 rounded-2xl bg-sky-400 hover:bg-sky-300 text-midnight-950 font-bold text-sm transition-all cursor-pointer shrink-0">
+                                Ask ATLAS
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Panel: ATLAS mascot + Settings -->
+                <div class="lg:col-span-4 glass-panel rounded-3xl p-5 sm:p-6 flex flex-col justify-between gap-4">
+                    <div class="space-y-4">
+                        <div class="atlas-mascot-card">
+                            <div class="flex items-center justify-between mb-1 px-1">
+                                <div>
+                                    <div class="text-sm font-semibold text-white">ATLAS</div>
+                                    <div class="text-[10px] font-mono uppercase tracking-wider text-sky-300">SI · Super Intelligence</div>
+                                </div>
+                                <button type="button" id="atlas-wave-btn" class="touch-target px-3 py-1.5 rounded-xl bg-sky-400/15 border border-sky-300/35 text-[11px] font-semibold text-sky-200 cursor-pointer">Wave</button>
+                            </div>
+                            <div id="atlas-mascot" class="atlas-mascot-stage" role="img" aria-label="ATLAS SI astronaut mascot" title="Tap ATLAS to wave">
+                                <div class="atlas-mascot-bob">
+                                    <img class="atlas-mascot-frame idle" src="assets/atlas-cutout.png" alt="ATLAS" />
+                                    <img class="atlas-mascot-frame wave" src="assets/atlas-cutout-wave.png" alt="ATLAS waving" />
+                                </div>
+                                <div id="atlas-mascot-bubble" class="atlas-mascot-bubble">Hi — I'm ATLAS (SI)</div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 text-center font-mono">Tap me to wave · recommend only</p>
+                        </div>
+
+                        <div class="pb-3 border-b border-sky-300/15">
+                            <h2 class="text-base font-bold text-white tracking-tight">ATLAS Settings</h2>
+                            <p class="text-xs text-slate-300 mt-0.5">Configure ship-side acoustic &amp; visual behavior.</p>
+                        </div>
+
+                        <!-- Quiet Mode Toggle (44px+ Touch Target) -->
+                        <div class="rounded-2xl bg-midnight-950/65 border border-sky-300/15 p-4 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-sm font-semibold text-white">Quiet Mode</div>
+                                <p class="text-xs text-slate-300 mt-0.5">Mutes voice chimes and pauses ambient motion for crew sleep shifts.</p>
+                            </div>
+                            <button 
+                                id="toggle-quiet-mode" 
+                                role="switch" 
+                                aria-checked="false" 
+                                onclick="toggleQuietMode()" 
+                                class="touch-target w-14 h-8 rounded-full bg-slate-800 border border-slate-600 p-1 transition-colors flex items-center cursor-pointer shrink-0">
+                                <span id="quiet-mode-knob" class="w-6 h-6 rounded-full bg-slate-300 transition-transform transform translate-x-0"></span>
+                            </button>
+                        </div>
+
+                        <!-- Voice Captions Auto-Scroll / Speech Readout -->
+                        <div class="rounded-2xl bg-midnight-950/65 border border-sky-300/15 p-4 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-sm font-semibold text-white">Advisory Voice Readout</div>
+                                <p class="text-xs text-slate-300 mt-0.5">Speak ATLAS recommendations aloud (auto-disabled in Quiet Mode).</p>
+                            </div>
+                            <button 
+                                id="toggle-voice-out" 
+                                role="switch" 
+                                aria-checked="true" 
+                                onclick="toggleVoiceReadout()" 
+                                class="touch-target w-14 h-8 rounded-full bg-sky-400/30 border border-sky-300/50 p-1 transition-colors flex items-center cursor-pointer shrink-0">
+                                <span id="voice-out-knob" class="w-6 h-6 rounded-full bg-sky-300 transition-transform transform translate-x-6"></span>
+                            </button>
+                        </div>
+
+                        <!-- Guardrail Charter -->
+                        <label class="rounded-2xl bg-midnight-950/65 border border-sky-300/15 p-4 flex items-center gap-3 cursor-pointer touch-target">
+                            <input type="checkbox" id="evaContextVisible" class="w-5 h-5" onchange="document.getElementById('evaContext').checked=this.checked; document.getElementById('evaContext').dispatchEvent(new Event('change'));">
+                            <span class="text-xs text-slate-200">EVA / prebreathe context (DCS pattern, simulated)</span>
+                        </label>
+                        <div class="rounded-2xl bg-midnight-950/50 border border-slate-700/60 p-4 space-y-2">
+                            <div class="text-xs font-mono uppercase tracking-wider text-sky-300">Safety &amp; Scope Guardrails</div>
+                            <ul class="text-xs text-slate-300 space-y-1.5 list-disc pl-4">
+                                <li>Recommendations only — never generates medical diagnoses or prescriptions.</li>
+                                <li>All sensor streams labeled as simulated prototype telemetry.</li>
+                                <li>Earth-bound flight surgeon escalation queued asynchronously over 11m 42s OWLT delay.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <button onclick="navigateTo('hub')" class="touch-target w-full py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-xs sm:text-sm transition-colors cursor-pointer">
+                        Return to Crew Hub
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+    <div id="hub-footer" class="hidden">
+    <section class="glass-panel rounded-2xl p-4 mt-3 max-h-40 overflow-auto" aria-label="SI log">
+      <h2 class="text-xs font-mono uppercase text-sky-300 mb-2">SI log <span class="text-slate-500">simulated · Super Intelligence</span></h2>
+      <ol id="agentLog" class="text-xs text-slate-300 space-y-1 font-mono"></ol>
+    </section>
+    <section class="glass-panel rounded-2xl p-4 mt-3 grid md:grid-cols-2 gap-3">
+      <div id="ship" class="text-xs text-slate-300"></div>
+      <div id="station" class="text-xs text-slate-300" aria-live="polite"></div>
+    </section>
+    </div>
+    <div id="detailTop" hidden></div><div id="detailBottom" hidden></div>
+    <section id="triage" hidden></section><section id="crew" hidden></section><section id="detail" hidden></section>
+    <select id="who" class="hidden" aria-hidden="true"></select>
+    <span id="listenInd" class="hidden"></span>
+    <input id="askIn" type="hidden" /><button id="askBtn" type="button" hidden></button>
+    <button id="relistenBtn" type="button" hidden></button>
+    <input type="checkbox" id="quietMode" hidden /><input type="checkbox" id="evaContext" hidden />
+    <span id="capHeard" hidden></span><span id="capSaid" hidden></span>
+    <span id="shipTime" hidden></span><span id="shipTimeSub" hidden></span>
+    <span id="earthTime" hidden></span><span id="earthTimeSub" hidden></span>
+    <span id="missionName" hidden></span><span id="missionDay" hidden></span>
+    <p id="setupStatus" hidden></p><p id="setupMission" hidden></p>
+    <button id="setupStart" type="button" hidden></button><p id="setupVoiceNote" hidden></p>
+    <ol id="askLog" class="hidden"></ol>
+    </main>
+
+
+    <dialog id="guide" class="glass-panel-elevated rounded-2xl p-6 max-w-lg text-white border border-sky-300/20 backdrop:bg-black/60">
+      <div id="guideBody" class="text-sm text-slate-200 space-y-3"></div>
+      <form method="dialog" class="mt-4"><button type="submit" class="touch-target px-4 py-2 rounded-xl bg-sky-400 text-midnight-950 font-semibold">Close</button></form>
+    </dialog>
+
+    <!-- ATLAS talk popup (shows when SI is speaking / answering) -->
+    <div id="atlas-talk-popup" aria-live="polite">
+      <div class="atlas-popup-figure">
+        <img id="atlas-popup-img" src="assets/atlas-cutout-wave.png" alt="" />
+      </div>
+      <div class="atlas-popup-card">
+        <div class="kicker">ATLAS · SI talking</div>
+        <div class="msg" id="atlas-popup-msg">—</div>
+      </div>
+    </div>
+
+    <script src="chart.umd.min.js?v=12"></script>
+    <script src="mission.js?v=12"></script>
+    <script src="app.js?v=13"></script>
+</body>
+</html>

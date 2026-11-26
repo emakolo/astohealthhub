@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Midnight blue Earth view through a spacecraft window">
+  <defs>
+    <radialGradient id="sky" cx="58%" cy="34%" r="75%">
+      <stop offset="0%" stop-color="#1a3a62"/>
+      <stop offset="45%" stop-color="#0c1c36"/>
+      <stop offset="100%" stop-color="#050b16"/>
+    </radialGradient>
+    <linearGradient id="earth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9ec9ff"/>
+      <stop offset="30%" stop-color="#3f7fc4"/>
+      <stop offset="65%" stop-color="#1a4a7a"/>
+      <stop offset="100%" stop-color="#0a2038"/>
+    </linearGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="55%" stop-color="#d7ebff" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#050b16" stop-opacity="0.65"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2a42"/>
+      <stop offset="100%" stop-color="#0a1424"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#frame)"/>
+  <rect x="48" y="36" width="1504" height="828" rx="18" fill="#050b16"/>
+  <rect x="48" y="36" width="1504" height="828" rx="18" fill="url(#sky)"/>
+  <g fill="#ffffff" opacity="0.85">
+    <circle cx="180" cy="120" r="1.5"/><circle cx="260" cy="200" r="1"/><circle cx="420" cy="90" r="1.2"/>
+    <circle cx="520" cy="160" r="1"/><circle cx="700" cy="70" r="1.4"/><circle cx="880" cy="130" r="1"/>
+    <circle cx="1020" cy="95" r="1.2"/><circle cx="1180" cy="180" r="1"/><circle cx="1320" cy="110" r="1.5"/>
+    <circle cx="1400" cy="220" r="1"/><circle cx="210" cy="280" r="1"/><circle cx="980" cy="250" r="1.1"/>
+    <circle cx="340" cy="150" r="0.8"/><circle cx="760" cy="210" r="0.9"/><circle cx="1240" cy="80" r="1"/>
+  </g>
+  <ellipse cx="980" cy="800" rx="940" ry="420" fill="url(#earth)"/>
+  <ellipse cx="980" cy="800" rx="940" ry="420" fill="url(#haze)"/>
+  <path d="M48 660 C240 620 380 680 560 640 C760 595 900 670 1100 630 C1280 595 1400 640 1552 620 L1552 864 L48 864 Z" fill="#ffffff" opacity="0.12"/>
+  <path d="M48 730 C280 700 520 750 760 715 C1000 680 1220 740 1552 710 L1552 864 L48 864 Z" fill="#07111f" opacity="0.35"/>
+  <rect x="48" y="36" width="1504" height="828" rx="18" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3"/>
+</svg>

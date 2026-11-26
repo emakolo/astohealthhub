@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Astro Health Hub — Demo Slides (WIP)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #060911;
+      --bg1: #0B1222;
+      --ink: #F1F5F9;
+      --muted: #94A3B8;
+      --sky: #38BDF8;
+      --sky-soft: #7DD3FC;
+      --line: rgba(125, 211, 252, 0.22);
+      --card: rgba(11, 17, 32, 0.72);
+      --amber: #FBBF24;
+      --coral: #FB7185;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(1200px 700px at 70% 110%, rgba(56,189,248,0.14), transparent 55%),
+                  linear-gradient(180deg, var(--bg0), var(--bg1));
+      color: var(--ink);
+      font-family: "IBM Plex Sans", sans-serif;
+      overflow: hidden;
+    }
+    .deck {
+      height: 100%;
+      width: 100%;
+      position: relative;
+    }
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: clamp(1.5rem, 4vw, 3.5rem);
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .slide.active { display: flex; }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .badge {
+      border: 1px solid var(--line);
+      background: rgba(56,189,248,0.1);
+      color: var(--sky-soft);
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+    }
+    .brand {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin: 0 0 0.75rem;
+    }
+    h2 {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      letter-spacing: -0.02em;
+      margin: 0 0 0.85rem;
+      line-height: 1.1;
+    }
+    .lead {
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      color: #CBD5E1;
+      max-width: 42rem;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1.25rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.9rem;
+      max-width: 980px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 1rem 1.1rem;
+      backdrop-filter: blur(10px);
+    }
+    .card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      color: var(--sky-soft);
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .card p { margin: 0; color: #E2E8F0; font-size: 0.98rem; line-height: 1.4; }
+    .list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.7rem;
+      max-width: 46rem;
+    }
+    .list li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      font-size: 1.1rem;
+      line-height: 1.35;
+    }
+    .list .n {
+      font-family: "IBM Plex Mono", monospace;
+      color: var(--sky);
+      font-weight: 600;
+      min-width: 1.6rem;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .nav {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--ink);
+      border-radius: 0.75rem;
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0.55rem 0.9rem;
+    }
+    button:hover { border-color: rgba(125,211,252,0.5); background: rgba(56,189,248,0.12); }
+    a.dl {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0.55rem 0.95rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(56,189,248,0.45);
+      background: rgba(56,189,248,0.18);
+      color: #E0F2FE;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    a.dl:hover { background: rgba(56,189,248,0.28); }
+    .dots { display: flex; gap: 0.4rem; }
+    .dots span {
+      width: 0.45rem; height: 0.45rem; border-radius: 999px;
+      background: rgba(148,163,184,0.45);
+    }
+    .dots span.on { background: var(--sky); }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .tag {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      padding: 0.4rem 0.65rem;
+      border-radius: 0.6rem;
+      border: 1px solid var(--line);
+      color: #E2E8F0;
+    }
+    .tag.ok { color: #7DD3FC; border-color: rgba(56,189,248,0.45); }
+    .tag.watch { color: #FDE68A; border-color: rgba(251,191,36,0.45); }
+    .tag.act { color: #FDA4AF; border-color: rgba(251,113,133,0.45); }
+    .hint { color: var(--muted); font-size: 0.9rem; }
+    kbd {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 0.35rem;
+      padding: 0.1rem 0.35rem;
+      color: var(--sky-soft);
+    }
+    @media print {
+      @page { size: landscape; margin: 0; }
+      html, body {
+        height: auto;
+        overflow: visible;
+        background: #070B14 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .deck {
+        height: auto;
+        position: static;
+      }
+      .slide {
+        position: relative;
+        inset: auto;
+        display: flex !important;
+        width: 100vw;
+        height: 100vh;
+        page-break-after: always;
+        break-after: page;
+        background: radial-gradient(1200px 700px at 70% 110%, rgba(56,189,248,0.14), transparent 55%),
+                    linear-gradient(180deg, #060911, #0B1222);
+      }
+      .slide:last-of-type { page-break-after: auto; break-after: auto; }
+      .print-hide { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+
+    <!-- 1 -->
+    <section class="slide active" data-slide="1">
+      <div class="top">
+        <span>Astro Health Hub</span>
+        <span class="badge">Demo deck · Not final</span>
+      </div>
+      <div class="main">
+        <h1 class="brand">Ship-side crew wellness<br>for deep-space transit</h1>
+        <p class="lead">A simulated Mars-transit monitor with ATLAS — ship-side Super Intelligence (SI) advisory guidance. Recommend only, never diagnose. Prototype in progress.</p>
+        <div class="tag-row">
+          <span class="tag">NASA Space Apps style demo</span>
+          <span class="tag">Offline-first HTML / JS</span>
+          <span class="tag">Work in progress</span>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Slide 1 / 7</span>
+        <span class="hint">Arrow keys or buttons to navigate</span>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide" data-slide="2">
+      <div class="top">
+        <span>The problem</span>
+        <span class="badge">Demo deck · Not final</span>
+      </div>
+      <div class="main">
+        <h2>Crew health can’t wait on Earth</h2>
+        <p class="lead">On a Mars transit, one-way light delay is ~11+ minutes. Crews need onboard triage before a flight surgeon can reply.</p>
+        <div class="grid">
+          <div class="card"><h3>Delay</h3><p>Earth advice arrives late. Local decisions still need structure.</p></div>
+          <div class="card"><h3>Wearables</h3><p>Bands and vests stream noisy biometrics — someone has to watch them.</p></div>
+          <div class="card"><h3>Scope</h3><p>Tools must recommend actions, not invent diagnoses or prescriptions.</p></div>
+        </div>
+      </div>
+      <div class="footer"><span>Slide 2 / 7</span><span>Why this exists</span></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide" data-slide="3">
+      <div class="top">
+        <span>What we’re building</span>
+        <span class="badge">Demo deck · Not final</span>
+      </div>
+      <div class="main">
+        <h2>Astro Health Hub + ATLAS</h2>
+        <ul class="list">
+          <li><span class="n">01</span><span>Glass ops UI for tablet landscape — Setup → Home → Crew Hub → Ask ATLAS</span></li>
+          <li><span class="n">02</span><span>Four simulated crew (Chen, Ortega, Bello, Kowalski) with threshold triage</span></li>
+          <li><span class="n">03</span><span>ATLAS voice/text SI (Super Intelligence): wake word, quiet mode, recommend-only replies</span></li>
+          <li><span class="n">04</span><span>NASA/CSA-inspired pattern catalog + symptom playbook (offline JSON)</span></li>
+        </ul>
+      </div>
+      <div class="footer"><span>Slide 3 / 7</span><span>Prototype scope</span></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide" data-slide="4">
+      <div class="top">
+        <span>Product flow</span>
+        <span class="badge">Demo deck · Not final</span>
+      </div>
+      <div class="main">
+        <h2>Four screens, one mission loop</h2>
+        <div class="grid">
+          <div class="card"><h3>Setup</h3><p>Pair WB / VS wearables, Begin mission.</p></div>
+          <div class="card"><h3>Home</h3><p>Brand-first entry into the crew hub.</p></div>
+          <div class="card"><h3>Crew Hub</h3><p>Statuses, vitals, body lights, 7-day trends, triage.</p></div>
+          <div class="card"><h3>Ask ATLAS</h3><p>Heard / reply captions, typed backup, settings.</p></div>
+        </div>
+        <div class="tag-row" style="margin-top:0.5rem">
+          <span class="tag ok">OK</span>
+          <span class="tag watch">LOG / Watch</span>
+          <span class="tag act">ACT NOW</span>
+          <span class="tag">Needs Earth</span>
+        </div>
+      </div>
+      <div class="footer"><span>Slide 4 / 7</span><span>UI tour</span></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide" data-slide="5">
+      <div class="top">
+        <span>ATLAS behavior</span>
+        <span class="badge">Demo deck · Not final</span>
+      </div>
+      <div class="main">
+        <h2>Advisory SI, not a doctor</h2>
+        <div class="grid">
+          <div class="card"><h3>Observe</h3><p>Simulated suit/band packets mapped to crew.</p></div>
+          <div class="card"><h3>Think</h3><p>Thresholds + pattern rules score risk.</p></div>
+          <div class="card"><h3>Advise</h3><p>Concise next steps. Medic decides care.</p></div>
+          <div class="card"><h3>Escalate</h3><p>Emergency guide + Earth async packet.</p></div>
+        </div>
+        <p class="lead" style="margin-top:0.5rem">Say “ATLAS…” or type: medic checks, “I feel feverish”, Earth summary, EVA start/end.</p>
+      </div>
+      <div class="footer"><span>Slide 5 / 7</span><span>Recommend only</span></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide" data-slide="6">
+      <div class="top">
+        <span>Live demo beats</span>
+        <span class="badge">Demo deck · Not final</span>
+      </div>
+      <div class="main">
+        <h2>What we can show right now</h2>
+        <ul class="list">
+          <li><span class="n">1</span><span><strong>Ortega rough night</strong> — sleep/HR drift into LOG / ACT</span></li>
+          <li><span class="n">2</span><span><strong>Symptom talk</strong> — “Aisha feels feverish” → playbook + temp bump</span></li>
+          <li><span class="n">3</span><span><strong>EVA focus</strong> — Kowalski outside; hub locks on suit telemetry</span></li>
+          <li><span class="n">4</span><span><strong>Band quiet / swap</strong> — missing signal & re-pair simulation</span></li>
+          <li><span class="n">5</span><span><strong>Earth summary</strong> — delayed handoff packet for surgeons</span></li>
+        </ul>
+      </div>
+      <div class="footer"><span>Slide 6 / 7</span><span>Judge / audience path</span></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide" data-slide="7">
+      <div class="top">
+        <span>Status</span>
+        <span class="badge">Not the final thing</span>
+      </div>
+      <div class="main">
+        <h2>Working prototype — still evolving</h2>
+        <p class="lead">This deck reflects where we are today: glass UI + real mission logic + ATLAS + EVA/symptom demos. Visual polish, offline packaging, and narrative length will keep changing.</p>
+        <div class="grid">
+          <div class="card"><h3>Now</h3><p>Runnable local hub with simulated crew and catalogs.</p></div>
+          <div class="card"><h3>Next</h3><p>Tighten story, harden demos, ship a shareable build.</p></div>
+          <div class="card"><h3>Guardrail</h3><p>Always simulated · recommend only · never diagnose.</p></div>
+        </div>
+      </div>
+      <div class="footer"><span>Slide 7 / 7</span><span>Thanks — questions welcome</span></div>
+    </section>
+  </div>
+
+  <div class="footer print-hide" style="position:fixed; left:0; right:0; bottom:0; padding:1rem clamp(1.5rem,4vw,3.5rem); pointer-events:none;">
+    <div></div>
+    <div class="nav" style="pointer-events:auto; margin-left:auto;">
+      <a class="dl" href="Astro-Health-Hub-Demo-Slides-WIP.pdf" download="Astro-Health-Hub-Demo-Slides-WIP.pdf">Download PDF</a>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+      <button type="button" id="prev" aria-label="Previous slide">←</button>
+      <button type="button" id="next" aria-label="Next slide">→</button>
+    </div>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    const dots = document.getElementById("dots");
+    let i = 0;
+    slides.forEach((_, n) => {
+      const d = document.createElement("span");
+      if (n === 0) d.classList.add("on");
+      dots.appendChild(d);
+    });
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+      [...dots.children].forEach((d, idx) => d.classList.toggle("on", idx === i));
+    }
+    document.getElementById("prev").onclick = () => show(i - 1);
+    document.getElementById("next").onclick = () => show(i + 1);
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); show(i + 1); }
+      if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+      if (e.key === "Home") show(0);
+      if (e.key === "End") show(slides.length - 1);
+    });
+  </script>
+</body>
+</html>

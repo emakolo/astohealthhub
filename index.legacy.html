@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Astro Health Hub</title>
+  <link rel="stylesheet" href="style.css?v=4b2-space-bg">
+</head>
+<body class="on-setup">
+  <!-- Mission setup: load mission.js, list crew, pair wearables (simulated) -->
+  <section id="setup" class="setup" aria-label="Mission setup simulated">
+    <div class="setup-card">
+      <h1 class="setup-title">Mission setup <span class="sim-tag">simulated</span></h1>
+      <p class="setup-sub" id="setupMission">Loading mission file…</p>
+      <ul class="setup-list" id="setupList"></ul>
+      <p class="setup-status" id="setupStatus" aria-live="polite">Waiting to pair devices…</p>
+      <button type="button" class="btn home-enter" id="setupStart" hidden>Begin</button>
+      <p class="setup-voice-note" id="setupVoiceNote" hidden>Begin starts the mic (no greeting). ATLAS stays quiet until you say the wake word, or until ACT NOW / EMERGENCY.</p>
+    </div>
+  </section>
+
+  <!-- Homepage: brand-first landing, then enter the crew hub -->
+  <section id="home" class="home" aria-label="Astro Health Hub home" hidden>
+    <div class="home-visual">
+      <img src="space-bg.jpg" alt="" class="home-hero-img" width="1600" height="900">
+    </div>
+    <div class="home-copy">
+      <p class="home-brand">Astro Health Hub</p>
+      <h1 class="home-headline">Crew care for the long coast to Mars</h1>
+      <p class="home-support">A simulated ship-side watch that tracks vitals, talks with the crew, and prepares what Earth needs to see.</p>
+      <div class="home-cta">
+        <button type="button" class="btn home-enter" id="enterHub">Enter crew hub</button>
+      </div>
+      <p class="home-note">Prototype for a hackathon demo. Not medical advice. Data is <span class="sim-tag">simulated</span>.</p>
+    </div>
+  </section>
+
+  <!-- Tablet shell: ~1180x760 landscape layout -->
+  <div class="tablet" id="hub" hidden>
+    <header class="topbar">
+      <div class="topbar-brand">
+        <button type="button" class="home-back" id="backHome" aria-label="Back to home">Astro Health Hub</button>
+        <h1>Crew Health Monitor</h1>
+        <p class="sub"><span id="missionName">Mission</span> &middot; Mission Day <span id="missionDay">—</span> &middot; <span class="sim-tag">simulated</span></p>
+      </div>
+      <div class="time-board" aria-label="Ship and Earth clocks">
+        <div class="time-card ship">
+          <span class="time-label">Space time</span>
+          <span class="time-value" id="shipTime">--:--:--</span>
+          <span class="time-sub" id="shipTimeSub">Ship MET</span>
+        </div>
+        <div class="time-card earth">
+          <span class="time-label">Earth time</span>
+          <span class="time-value" id="earthTime">--:--:--</span>
+          <span class="time-sub" id="earthTimeSub">UTC</span>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="summary" id="summary" aria-live="polite"></div>
+        <button class="btn danger" id="emergencyBtn">Emergency guide</button>
+        <button class="btn" id="demoBtn">Run demo: Ortega's rough night</button>
+        <button class="btn" id="swapBandBtn">Swap Ortega's band</button>
+        <button class="btn" id="quietBandBtn">Band goes quiet</button>
+        <button class="btn" id="checkInBtn">Run morning check-in (demo)</button>
+        <button class="btn" id="earthBtn">Earth summary</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <!-- Left: compact crew list -->
+      <section class="crew-list panel" id="crew" aria-label="Crew status"></section>
+
+      <!-- Middle: selected astronaut detail (chart canvas stays mounted so Chart.js can update in place) -->
+      <section class="detail panel" id="detail" aria-label="Selected astronaut">
+        <div id="detailTop"></div>
+        <div class="chart-box">
+          <h3 class="section-label">7-day trend <span class="sim-tag">simulated</span></h3>
+          <div class="chart-frame">
+            <canvas id="trendChart" aria-label="Last 7 days of sleep and resting heart rate"></canvas>
+          </div>
+        </div>
+        <div id="detailBottom"></div>
+      </section>
+
+      <!-- Right: triage for selected person + Ask the agent -->
+      <aside class="rightcol">
+        <section class="panel triagepanel" id="triage" aria-label="Triage"></section>
+        <section class="panel" id="askPanel">
+          <h2 class="logh">Ask ATLAS</h2>
+          <div class="askrow">
+            <span id="listenInd" class="listen-ind" hidden aria-live="polite">Listening</span>
+            <button type="button" class="btn" id="relistenBtn" title="Re-request microphone and restart listening">Relisten</button>
+            <details class="settings" id="settingsPanel">
+              <summary>Settings</summary>
+              <label class="quiet-label">
+                <input type="checkbox" id="quietMode" />
+                Quiet mode — speak only for ACT NOW and EMERGENCY
+              </label>
+              <label class="quiet-label">
+                <input type="checkbox" id="evaContext" />
+                EVA / prebreathe context (for DCS pattern match)
+              </label>
+              <label class="small settings-pod">Pod mic stand-in <span class="sim-tag">simulated</span>
+                <select id="who" aria-label="Pod microphone stand-in for morning check-in"></select>
+              </label>
+            </details>
+          </div>
+          <div class="askrow">
+            <input id="askIn" type="text" placeholder='Try: "Atlas, medic check for Aisha"' aria-label="Ask ATLAS">
+            <button class="btn" id="askBtn">Ask</button>
+          </div>
+          <div class="captions" id="captions" aria-live="polite">
+            <p class="cap"><span class="cap-k">Heard</span> <span id="capHeard">—</span></p>
+            <p class="cap"><span class="cap-k">ATLAS</span> <span id="capSaid">—</span></p>
+          </div>
+          <ol id="askLog"></ol>
+        </section>
+      </aside>
+    </main>
+
+    <!-- Bottom: Agent Log + ship panel + cabin strip -->
+    <footer class="bottom">
+      <section class="panel logpanel"><h2 class="logh">Agent log</h2><ol id="agentLog"></ol></section>
+      <section class="panel shippanel" id="ship" aria-label="Ship panel simulated"></section>
+      <section class="panel strip" id="station" aria-live="polite"></section>
+    </footer>
+
+    <p class="footnote">Tap any reading to see how to measure it, why it matters and what to do. All data is <span class="sim-tag">simulated</span> in your browser. Thresholds are our team's design values, not NASA figures. Prototype for a hackathon demo. Not medical advice.</p>
+  </div>
+
+  <dialog id="guide">
+    <div id="guideBody"></div>
+    <form method="dialog"><button class="btn">Close</button></form>
+  </dialog>
+
+  <!-- Chart.js + mission file + app (mission.js must load first) -->
+  <script src="chart.umd.min.js?v=4a2"></script>
+  <script src="mission.js?v=4a2"></script>
+  <script src="app.js?v=4b-glass-clocks"></script>
+</body>
+</html>

@@ -1,0 +1,1317 @@
+{
+  "meta": {
+    "title": "Onboard spaceflight health pattern catalog (NASA + CSA curated)",
+    "version": "2.0",
+    "purpose": "Curated knowledge base for a rule-based SI / Super Intelligence (not ML training). Match wearables, cabin sensors, and what crew say they feel to published NASA/CSA risk patterns. Tell the crew what to do next — recommend only, never diagnose.",
+    "disclaimer": "Not medical advice. Not a diagnosis. Built for a Space Apps hackathon from public NASA HRP and Canadian Space Agency / Open Government resources listed in the Canadian Open Data handout. Thresholds align with mission.js design values unless noted. The crew medic and Earth decide treatment.",
+    "howToUse": [
+      "Collect facts from wristband/vest, cabin sensors, and free-form 'I feel…' talk or morning check-in.",
+      "Look up reported feelings in symptomPlaybook for immediate next steps.",
+      "Score patterns; speak top matches with recommendations.",
+      "Never say 'you have disease X' — say readings/symptoms are consistent with a catalog pattern."
+    ],
+    "sources": [
+      {
+        "name": "5 Hazards of Human Spaceflight",
+        "url": "https://www.nasa.gov/hrp/hazards/"
+      },
+      {
+        "name": "Risks of Human Spaceflight",
+        "url": "https://www.nasa.gov/hrp/risks/"
+      },
+      {
+        "name": "NASA Human Research Roadmap — Hypoxia risk",
+        "url": "https://humanresearchroadmap.nasa.gov/risks/?i=173"
+      },
+      {
+        "name": "Fundamentals of Human Health (NASA)",
+        "url": "https://www.nasa.gov/reference/fundamentals-of-human-health/"
+      },
+      {
+        "name": "NASA CO2 risk overview",
+        "url": "https://www.nasa.gov/directorates/esdmd/hhp/carbon-dioxide-risk/"
+      },
+      {
+        "name": "Canadian Open Data and Resources (Space Apps 2026 handout)",
+        "url": "https://www.asc-csa.gc.ca/",
+        "note": "Lists CSA Open Data Portal, CSA GitHub, EODMS, CADC for challenge participants"
+      },
+      {
+        "name": "CSA Open Data (Open Government organization page)",
+        "url": "https://ouvert.canada.ca/data/en/organization/csa-asc"
+      },
+      {
+        "name": "CSA — About space medicine",
+        "url": "https://www.asc-csa.gc.ca/eng/astronauts/space-medicine/about.asp"
+      },
+      {
+        "name": "CSA — Space medicine projects",
+        "url": "https://www.asc-csa.gc.ca/eng/astronauts/space-medicine/projects.asp"
+      },
+      {
+        "name": "CSA Space Health study (Bio-Monitor)",
+        "url": "https://www.asc-csa.gc.ca/eng/sciences/space-flight-improve-monitor-health-earth.asp"
+      },
+      {
+        "name": "PRET neurocognitive dataset (Open Government)",
+        "url": "https://open.canada.ca/data/en/dataset/c22fa749-b005-4956-bf68-2ac2b9e68d31"
+      },
+      {
+        "name": "CSA Health & Life Sciences AO 2026 — human spaceflight risks",
+        "url": "https://www.asc-csa.gc.ca/eng/funding-programs/funding-opportunities/ao/2026-health-life-sciences-data-and-sample-mining-or-research-models-cycle-5.asp"
+      },
+      {
+        "name": "Canadian Space Agency GitHub",
+        "url": "https://github.com/asc-csa"
+      },
+      {
+        "name": "Earth Observation Data Management System (EODMS)",
+        "url": "https://www.eodms-sgdot.nrcan-rncan.gc.ca/"
+      },
+      {
+        "name": "Canadian Astronomy Data Centre (CADC)",
+        "url": "https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/"
+      }
+    ]
+  },
+  "hazards": [
+    {
+      "id": "space_radiation",
+      "name": "Space radiation",
+      "summary": "Invisible ionizing radiation outside Earth's protective magnetosphere; among the most serious deep-space hazards."
+    },
+    {
+      "id": "isolation_confinement",
+      "name": "Isolation and confinement",
+      "summary": "Long periods in a small crew far from Earth can drive behavioral, sleep, and stress responses."
+    },
+    {
+      "id": "distance_from_earth",
+      "name": "Distance from Earth",
+      "summary": "Medical care, supplies, and instructions become delayed; onboard autonomy matters more."
+    },
+    {
+      "id": "gravity_fields",
+      "name": "Gravity fields",
+      "summary": "Microgravity and gravity transitions affect muscles, bones, inner ear, heart, and organs."
+    },
+    {
+      "id": "hostile_closed_environment",
+      "name": "Hostile / closed environments",
+      "summary": "Spacecraft atmosphere, temperature, pressure, lighting, noise, and microbes must stay within safe bounds."
+    }
+  ],
+  "signalGuide": {
+    "fromWristband": [
+      "hr",
+      "spo2",
+      "sys",
+      "dia"
+    ],
+    "fromVest": [
+      "temp"
+    ],
+    "fromCabin": [
+      "cabinCo2",
+      "cabinTemp"
+    ],
+    "fromHistoryOrCheckIn": [
+      "sleepHours",
+      "stress",
+      "exerciseMin",
+      "symptoms"
+    ],
+    "fromMissionProfile": [
+      "radPercent"
+    ],
+    "fromBioMonitorConcept": [
+      "hr",
+      "spo2",
+      "respirationRate_not_in_demo",
+      "activity",
+      "wellnessQuestionnaire"
+    ],
+    "note": "CSA Bio-Monitor records HR, respiration, SpO2 and more. This demo maps wristband→HR/SpO2/BP and vest→temp; sleep/stress/exercise stand in for wellness/activity questionnaire signals."
+  },
+  "patterns": [
+    {
+      "id": "hypoxia_pattern",
+      "name": "Low-oxygen (hypoxia) watch",
+      "nasaRisk": "Risk of Reduced Crew Health and Performance Due to Hypoxia",
+      "hazardIds": [
+        "hostile_closed_environment"
+      ],
+      "summary": "Tissue oxygen lower than normal. Relevant for exploration atmospheres, ECLSS issues, illness, or EVA-related protocols. Mild hypoxia can affect cognition, sleep, and performance.",
+      "symptoms": [
+        "Headache",
+        "Shortness of breath or air hunger",
+        "Fatigue",
+        "Visual changes",
+        "Slowed thinking or sensorimotor impairment",
+        "Sleep disruption"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "spo2_watch",
+            "signal": "spo2",
+            "op": "lte",
+            "value": 95,
+            "weight": 2,
+            "note": "Aligns with mission SpO2 watch threshold"
+          },
+          {
+            "id": "spo2_alert",
+            "signal": "spo2",
+            "op": "lte",
+            "value": 92,
+            "weight": 3,
+            "note": "Aligns with mission SpO2 alert threshold"
+          },
+          {
+            "id": "spo2_emergency",
+            "signal": "spo2",
+            "op": "lt",
+            "value": 90,
+            "weight": 4,
+            "note": "Aligns with mission emergency SpO2 latch"
+          },
+          {
+            "id": "hr_high",
+            "signal": "hr",
+            "op": "gte",
+            "value": 100,
+            "weight": 1,
+            "note": "Compensatory heart-rate rise can accompany hypoxia"
+          },
+          {
+            "id": "symptom_dizz",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "dizziness",
+            "weight": 1
+          },
+          {
+            "id": "symptom_blur",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "blurry vision",
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Check cabin oxygen / ECLSS and personal SpO2 again while seated and still.",
+        "Stop non-essential exertion until readings improve.",
+        "Notify the crew medic; prepare an Earth summary if SpO2 stays at alert or worse.",
+        "Do not diagnose — treat as a hypoxia-compatible pattern until the medic rules on cause."
+      ],
+      "severityHint": "act",
+      "needsEarthIfSeverity": [
+        "act",
+        "emergency"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "cardiovascular_adaptation_pattern",
+      "name": "Cardiovascular strain / adaptation pattern",
+      "nasaRisk": "Risk of Cardiovascular Adaptations",
+      "hazardIds": [
+        "gravity_fields"
+      ],
+      "summary": "Weightlessness changes blood distribution and how the heart and vessels work. In-mission watches use resting HR and BP drift versus the person's baseline.",
+      "symptoms": [
+        "Elevated or unstable resting heart rate",
+        "Raised blood pressure",
+        "Chest discomfort (emergency if present)",
+        "Dizziness on exertion",
+        "Reduced exercise tolerance"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "hr_watch",
+            "signal": "hr",
+            "op": "gte",
+            "value": 100,
+            "weight": 2
+          },
+          {
+            "id": "hr_alert",
+            "signal": "hr",
+            "op": "gte",
+            "value": 110,
+            "weight": 3
+          },
+          {
+            "id": "hr_vs_baseline",
+            "signal": "hrDevFromBaseline",
+            "op": "gte",
+            "value": 10,
+            "weight": 2,
+            "note": "Deviation from personal resting baseline"
+          },
+          {
+            "id": "bp_watch",
+            "signal": "sys",
+            "op": "gte",
+            "value": 140,
+            "weight": 2
+          },
+          {
+            "id": "bp_alert",
+            "signal": "sys",
+            "op": "gte",
+            "value": 160,
+            "weight": 3
+          },
+          {
+            "id": "dia_alert",
+            "signal": "dia",
+            "op": "gte",
+            "value": 100,
+            "weight": 3
+          },
+          {
+            "id": "ex_low",
+            "signal": "exerciseMin",
+            "op": "lt",
+            "value": 30,
+            "weight": 1
+          },
+          {
+            "id": "symptom_chest",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "chest pain",
+            "weight": 4
+          }
+        ]
+      },
+      "recommendations": [
+        "Rest, sit or lie comfortably, remeasure HR and BP after 5 quiet minutes.",
+        "Protect the daily exercise countermeasure when medically cleared (team target ~60 min).",
+        "If chest pain, collapse, or severe shortness of breath: open emergency guide and page the medic immediately.",
+        "Known operational countermeasures researched for related issues include exercise, fluid loading, and compression garments — medic decides what applies."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [
+        "emergency"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "musculoskeletal_deconditioning_pattern",
+      "name": "Bones and muscles under-loading pattern",
+      "nasaRisk": "Gravity-related musculoskeletal deconditioning (exercise countermeasure domain)",
+      "hazardIds": [
+        "gravity_fields"
+      ],
+      "summary": "Without enough load and exercise in microgravity, bone and muscle strength decline. Daily exercise is a primary countermeasure.",
+      "symptoms": [
+        "Low logged exercise minutes",
+        "Muscle fatigue or weakness (self-report)",
+        "Reduced work capacity"
+      ],
+      "match": {
+        "minScore": 1,
+        "rules": [
+          {
+            "id": "ex_watch",
+            "signal": "exerciseMin",
+            "op": "lt",
+            "value": 30,
+            "weight": 2
+          },
+          {
+            "id": "ex_alert",
+            "signal": "exerciseMin",
+            "op": "lt",
+            "value": 15,
+            "weight": 3
+          },
+          {
+            "id": "sleep_short",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 7,
+            "weight": 1,
+            "note": "Short sleep often blocks completing exercise"
+          }
+        ]
+      },
+      "recommendations": [
+        "Schedule a make-up exercise session today if safe to do so.",
+        "Protect ~60 minutes of active exercise in the daily plan (team design target).",
+        "Tell the crew medic if under 15 minutes; review workload so countermeasures fit.",
+        "Nutrition and prescribed exercise hardware protocols are part of NASA human health countermeasures — medic/Earth set the plan."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [],
+      "notADiagnosis": true
+    },
+    {
+      "id": "sleep_fatigue_isolation_pattern",
+      "name": "Sleep loss / fatigue / isolation stress pattern",
+      "nasaRisk": "Behavioral performance and sleep risks under Isolation and Confinement",
+      "hazardIds": [
+        "isolation_confinement",
+        "hostile_closed_environment"
+      ],
+      "summary": "Astronauts commonly face short sleep, circadian disruption, workload, noise, and elevated cabin CO2 — all linked to fatigue and performance drops ('space fog' reports in literature).",
+      "symptoms": [
+        "Short sleep",
+        "High stress or mood strain",
+        "Headache",
+        "Slowed reaction / forgetfulness (self-report)",
+        "Irritability"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "sleep_watch",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 7,
+            "weight": 2
+          },
+          {
+            "id": "sleep_alert",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 5,
+            "weight": 3
+          },
+          {
+            "id": "stress_watch",
+            "signal": "stress",
+            "op": "gte",
+            "value": 4,
+            "weight": 2
+          },
+          {
+            "id": "stress_alert",
+            "signal": "stress",
+            "op": "gte",
+            "value": 5,
+            "weight": 3
+          },
+          {
+            "id": "hr_trend",
+            "signal": "hrRiseOverDays",
+            "op": "gte",
+            "value": 5,
+            "weight": 2,
+            "note": "Rising resting HR with falling sleep is an early warning trend in this demo"
+          },
+          {
+            "id": "co2_high",
+            "signal": "cabinCo2",
+            "op": "gt",
+            "value": 1500,
+            "weight": 2
+          },
+          {
+            "id": "symptom_headache",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "headache",
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Lighten workload; protect an early, quiet sleep period.",
+        "Check cabin CO2 and sleep environment (noise, light, temperature).",
+        "Talk with the crew medic if stress stays high or sleep stays under alert levels.",
+        "Promising operational supports studied in flight include schedule control, lighting/circadian support, and lowering ambient CO2 — medic decides."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [],
+      "notADiagnosis": true
+    },
+    {
+      "id": "cabin_co2_pattern",
+      "name": "Elevated cabin CO2 exposure pattern",
+      "nasaRisk": "Risk of Nominal Acute and Chronic Ambient Carbon Dioxide Exposure",
+      "hazardIds": [
+        "hostile_closed_environment"
+      ],
+      "summary": "Closed vehicles rely on scrubbers; elevated CO2 is linked to headache, fatigue, sleep disruption, and performance decrements. Can look like a 'person problem' when several crew share symptoms.",
+      "symptoms": [
+        "Headache",
+        "Fatigue",
+        "Reduced concentration",
+        "Sleep disruption",
+        "Shared symptoms across multiple crew"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "co2_station",
+            "signal": "cabinCo2",
+            "op": "gt",
+            "value": 1500,
+            "weight": 3,
+            "note": "Aligns with mission station-problem CO2 threshold"
+          },
+          {
+            "id": "multi_crew_hr_spo2",
+            "signal": "sharedCrewVitalFlags",
+            "op": "gte",
+            "value": 2,
+            "weight": 2,
+            "note": "Two or more crew with HR/SpO2 issues → prefer station check"
+          },
+          {
+            "id": "symptom_headache",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "headache",
+            "weight": 1
+          },
+          {
+            "id": "sleep_short",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 7,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Treat as a possible station/environment issue: verify CO2 removal and air circulation before treating individuals alone.",
+        "Reduce local crowding in poorly ventilated areas; remeasure after scrubber check.",
+        "Log symptoms and prepare an Earth summary if CO2 stays high or multiple crew are affected.",
+        "Engineering countermeasures: CO2 removal systems and environmental monitoring — not a personal diagnosis."
+      ],
+      "severityHint": "act",
+      "needsEarthIfSeverity": [
+        "act",
+        "emergency"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "immune_infection_like_pattern",
+      "name": "Immune stress / infection-like pattern",
+      "nasaRisk": "Risk of Altered Immune System Responses; Risk of Host-Microorganism Interactions",
+      "hazardIds": [
+        "hostile_closed_environment",
+        "isolation_confinement"
+      ],
+      "summary": "Spaceflight stress can alter immune function and reactivate latent viruses (sometimes rashes or other symptoms). Microbiome shifts may raise infection risk. This pattern is symptom- and temperature-driven — still not a diagnosis.",
+      "symptoms": [
+        "Fever or raised temperature",
+        "Sore throat",
+        "Rash (self-report)",
+        "Nausea",
+        "Fatigue",
+        "Headache"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "temp_watch",
+            "signal": "temp",
+            "op": "gte",
+            "value": 37.5,
+            "weight": 2
+          },
+          {
+            "id": "temp_alert",
+            "signal": "temp",
+            "op": "gte",
+            "value": 38.5,
+            "weight": 3
+          },
+          {
+            "id": "temp_emergency",
+            "signal": "temp",
+            "op": "gt",
+            "value": 39,
+            "weight": 4
+          },
+          {
+            "id": "temp_low",
+            "signal": "temp",
+            "op": "lte",
+            "value": 36.5,
+            "weight": 1
+          },
+          {
+            "id": "symptom_throat",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "sore throat",
+            "weight": 2
+          },
+          {
+            "id": "symptom_nausea",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "nausea",
+            "weight": 1
+          },
+          {
+            "id": "symptom_headache",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "headache",
+            "weight": 1
+          },
+          {
+            "id": "stress_high",
+            "signal": "stress",
+            "op": "gte",
+            "value": 4,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Remeasure temperature; note onset time and other symptoms for the medic.",
+        "Rest, hydrate as directed by the medic, and limit close contact if infectious illness is suspected.",
+        "Page the medic for fever at alert levels; emergency path if temperature crosses the emergency latch.",
+        "Research explores immune monitoring and nutritional/pharmacologic countermeasures — Earth/medic choose care."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [
+        "act",
+        "emergency"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "vestibular_sensorimotor_pattern",
+      "name": "Vestibular / sensorimotor disturbance pattern",
+      "nasaRisk": "Risk of Altered Sensorimotor and Vestibular Function",
+      "hazardIds": [
+        "gravity_fields"
+      ],
+      "summary": "Gravity transitions can cause motion sickness, dizziness, and hand-eye or gait problems that impair walking or vehicle/spacecraft tasks.",
+      "symptoms": [
+        "Dizziness",
+        "Nausea",
+        "Motion sickness",
+        "Hand-eye coordination difficulty",
+        "Unsteady movement (self-report)"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "symptom_dizz",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "dizziness",
+            "weight": 2
+          },
+          {
+            "id": "symptom_nausea",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "nausea",
+            "weight": 2
+          },
+          {
+            "id": "symptom_blur",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "blurry vision",
+            "weight": 1
+          },
+          {
+            "id": "stress_high",
+            "signal": "stress",
+            "op": "gte",
+            "value": 4,
+            "weight": 1
+          },
+          {
+            "id": "sleep_short",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 6,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Limit safety-critical piloting or EVA-like tasks until cleared by the medic.",
+        "Rest in a stable orientation; avoid sudden head movements if dizzy.",
+        "Report onset relative to any gravity or vehicle transition.",
+        "Research focuses on motion-sickness countermeasures and sensorimotor training — medic selects what to use."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [],
+      "notADiagnosis": true
+    },
+    {
+      "id": "decompression_sickness_watch",
+      "name": "Decompression sickness (DCS) watch — EVA context",
+      "nasaRisk": "Risk of Decompression Sickness",
+      "hazardIds": [
+        "hostile_closed_environment"
+      ],
+      "summary": "Moving from higher cabin pressure toward lower suit pressure can let dissolved nitrogen form bubbles in tissues ('the bends'). Prevention protocols also interact with hypoxia risk. This pattern is mostly symptom + operational context.",
+      "symptoms": [
+        "Joint or muscle pain after pressure change / EVA prep",
+        "Unusual fatigue",
+        "Skin mottling (self-report)",
+        "Dizziness or confusion",
+        "Shortness of breath"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "context_eva",
+            "signal": "opsContext",
+            "op": "eq",
+            "value": "eva_or_prebreathe",
+            "weight": 2,
+            "note": "Set by operator/demo flag when EVA prep is active"
+          },
+          {
+            "id": "symptom_pain",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "back or side pain",
+            "weight": 2
+          },
+          {
+            "id": "symptom_dizz",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "dizziness",
+            "weight": 1
+          },
+          {
+            "id": "spo2_drop",
+            "signal": "spo2",
+            "op": "lte",
+            "value": 95,
+            "weight": 1
+          },
+          {
+            "id": "hr_high",
+            "signal": "hr",
+            "op": "gte",
+            "value": 100,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Stop EVA prep/egress steps; keep the person on cabin life support protocols the medic orders.",
+        "Page the medic immediately; this is a time-critical operational medical event.",
+        "Record pressure timeline and symptom onset for Earth.",
+        "NASA research emphasizes better prevention and faster treatment options — do not freestyle treatment onboard."
+      ],
+      "severityHint": "act",
+      "needsEarthIfSeverity": [
+        "act",
+        "emergency"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "radiation_exposure_pattern",
+      "name": "Cumulative radiation exposure pattern",
+      "nasaRisk": "Space radiation risks (carcinogenesis, CNS, degenerative disease; acute syndromes at high doses)",
+      "hazardIds": [
+        "space_radiation",
+        "distance_from_earth"
+      ],
+      "summary": "Deep-space radiation is a primary hazard. This demo uses percent of mission dose allowance. High cumulative dose drives operational limits (EVA, shielding), not an acute 'illness name' from a wristband.",
+      "symptoms": [
+        "Mostly asymptomatic at chronic mission doses",
+        "Acute high-dose syndromes are rare operational emergencies (nausea, vomiting, fatigue) — medic/Earth protocols"
+      ],
+      "match": {
+        "minScore": 1,
+        "rules": [
+          {
+            "id": "rad_watch",
+            "signal": "radPercent",
+            "op": "gte",
+            "value": 70,
+            "weight": 2
+          },
+          {
+            "id": "rad_alert",
+            "signal": "radPercent",
+            "op": "gte",
+            "value": 90,
+            "weight": 3
+          },
+          {
+            "id": "symptom_nausea",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "nausea",
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Limit EVA; prefer shielded areas when dose is high.",
+        "Commander reviews shielding schedule; prepare Earth planning input.",
+        "At alert-level cumulative dose, treat as Needs Earth for mission planning.",
+        "Countermeasures under study include shielding, storm shelters, and radioprotectants — not crew self-diagnosis."
+      ],
+      "severityHint": "hold",
+      "needsEarthIfSeverity": [
+        "act",
+        "emergency",
+        "hold"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "autonomy_distance_pattern",
+      "name": "Distance-from-Earth autonomy flag",
+      "nasaRisk": "Distance from Earth (care, supplies, and guidance delay)",
+      "hazardIds": [
+        "distance_from_earth"
+      ],
+      "summary": "Not an illness. When triage is ACT NOW / EMERGENCY or multiple patterns fire, the SI should package an Earth summary because delayed care is itself a hazard.",
+      "symptoms": [],
+      "match": {
+        "minScore": 1,
+        "rules": [
+          {
+            "id": "triage_act",
+            "signal": "triageLevel",
+            "op": "in",
+            "value": [
+              "act",
+              "emergency"
+            ],
+            "weight": 2
+          },
+          {
+            "id": "multi_pattern",
+            "signal": "matchedPatternCount",
+            "op": "gte",
+            "value": 3,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Prepare a plain-text Earth summary and case packet.",
+        "Page the onboard medic (or backup if the medic is the patient).",
+        "Keep recommending — do not wait for Earth to start first-aid steps already in the emergency guide."
+      ],
+      "severityHint": "hold",
+      "needsEarthIfSeverity": [
+        "hold",
+        "act",
+        "emergency"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "behavioural_neurocog_pattern",
+      "name": "Behavioural health / neurocognitive strain pattern",
+      "nasaRisk": "Behavioural Health and Performance (CSA HLS); Isolation and Confinement (NASA)",
+      "hazardIds": [
+        "isolation_confinement",
+        "hostile_closed_environment"
+      ],
+      "summary": "CSA highlights psychological adaptation, stress, fatigue, and cognitive deterioration as mission risks. CSA PRET work targets processing speed, memory, attention, and response control. Self-reported fog/stress plus short sleep is an early operational flag — not a diagnosis.",
+      "symptoms": [
+        "Fatigue",
+        "Stress or anxiety",
+        "Confusion or space fog",
+        "Hard to focus",
+        "Irritability"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "stress_watch",
+            "signal": "stress",
+            "op": "gte",
+            "value": 4,
+            "weight": 2
+          },
+          {
+            "id": "stress_alert",
+            "signal": "stress",
+            "op": "gte",
+            "value": 5,
+            "weight": 3
+          },
+          {
+            "id": "sleep_short",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 7,
+            "weight": 2
+          },
+          {
+            "id": "sleep_alert",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 5,
+            "weight": 3
+          },
+          {
+            "id": "symptom_fatigue",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "fatigue",
+            "weight": 2
+          },
+          {
+            "id": "symptom_stress",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "stress",
+            "weight": 2
+          },
+          {
+            "id": "symptom_confusion",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "confusion",
+            "weight": 3
+          },
+          {
+            "id": "co2_high",
+            "signal": "cabinCo2",
+            "op": "gt",
+            "value": 1500,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Protect sleep and cut non-critical tasks for the next work block.",
+        "Do a short wellness check with ATLAS: mood/stress 1–5, focus, and any headache.",
+        "Verify cabin CO2 — elevated CO2 can worsen headache and performance.",
+        "Tell the crew medic; behavioural health support is part of CSA space medicine, not a personal failure."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [],
+      "notADiagnosis": true
+    },
+    {
+      "id": "sans_vision_pattern",
+      "name": "Vision / fluid-shift (SANS-watch) pattern",
+      "nasaRisk": "Space-Associated Neuro-ocular Syndrome / variable gravity adaptation (CSA HLS)",
+      "hazardIds": [
+        "gravity_fields"
+      ],
+      "summary": "Fluid shifts in microgravity are linked to eye and brain pressure changes studied across NASA/CSA programs. Blurry vision with headache is an operational watch — medic evaluates; ATLAS only flags and guides next steps.",
+      "symptoms": [
+        "Blurry vision",
+        "Headache",
+        "Eye pressure feeling (self-report)"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "symptom_blur",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "blurry vision",
+            "weight": 3
+          },
+          {
+            "id": "symptom_headache",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "headache",
+            "weight": 2
+          },
+          {
+            "id": "co2_high",
+            "signal": "cabinCo2",
+            "op": "gt",
+            "value": 1500,
+            "weight": 1
+          },
+          {
+            "id": "sleep_short",
+            "signal": "sleepHours",
+            "op": "lt",
+            "value": 6,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Log near vs far blur and headache timing for the medic.",
+        "Pause precision visual tasks and EVA optical work until reviewed.",
+        "Check cabin CO2 and SpO2 so environment causes are not missed.",
+        "Prepare an Earth summary if vision changes persist — distance from Earth makes early documentation critical."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [
+        "act"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "biomonitor_cardio_strain_pattern",
+      "name": "Bio-Monitor-style cardiovascular strain pattern",
+      "nasaRisk": "Cardiovascular adaptations; CSA Space Health / Bio-Monitor monitoring concept",
+      "hazardIds": [
+        "gravity_fields"
+      ],
+      "summary": "CSA Bio-Monitor concepts track HR, respiration, and SpO2 continuously. This demo uses wristband HR/SpO2/BP plus stress/exercise as a lightweight stand-in to flag cardio strain patterns for the medic.",
+      "symptoms": [
+        "Elevated resting HR",
+        "Shortness of breath",
+        "Chest discomfort",
+        "Exercise intolerance",
+        "Fatigue"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "hr_watch",
+            "signal": "hr",
+            "op": "gte",
+            "value": 100,
+            "weight": 2
+          },
+          {
+            "id": "hr_dev",
+            "signal": "hrDevFromBaseline",
+            "op": "gte",
+            "value": 15,
+            "weight": 3
+          },
+          {
+            "id": "spo2_watch",
+            "signal": "spo2",
+            "op": "lte",
+            "value": 95,
+            "weight": 2
+          },
+          {
+            "id": "bp_watch",
+            "signal": "sys",
+            "op": "gte",
+            "value": 140,
+            "weight": 2
+          },
+          {
+            "id": "symptom_chest",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "chest pain",
+            "weight": 4
+          },
+          {
+            "id": "symptom_sob",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "shortness of breath",
+            "weight": 3
+          },
+          {
+            "id": "ex_low",
+            "signal": "exerciseMin",
+            "op": "lt",
+            "value": 30,
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Rest and remeasure HR, SpO2, and BP after 5 quiet minutes.",
+        "Chest pain or resting shortness of breath → page medic and follow emergency steps.",
+        "Keep Earth in the loop if ACT NOW persists — cardiovascular events are why continuous monitoring concepts exist.",
+        "Exercise countermeasures resume only when the medic clears you."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [
+        "act",
+        "emergency"
+      ],
+      "notADiagnosis": true
+    },
+    {
+      "id": "metabolism_hydration_pattern",
+      "name": "Metabolism / hydration strain pattern",
+      "nasaRisk": "Metabolism risk (CSA HLS); urinary/renal concerns in closed environments (NASA fundamentals)",
+      "hazardIds": [
+        "hostile_closed_environment",
+        "gravity_fields"
+      ],
+      "summary": "CSA lists metabolism and diet among exploration risks. In this demo, low exercise, high stress, fatigue, and nausea stand in for metabolic/hydration strain that the medic should review — ATLAS does not diagnose deficiency or stones.",
+      "symptoms": [
+        "Fatigue",
+        "Nausea",
+        "Low appetite (self-report)",
+        "Side/back pain",
+        "Headache"
+      ],
+      "match": {
+        "minScore": 2,
+        "rules": [
+          {
+            "id": "ex_low",
+            "signal": "exerciseMin",
+            "op": "lt",
+            "value": 30,
+            "weight": 1
+          },
+          {
+            "id": "stress_high",
+            "signal": "stress",
+            "op": "gte",
+            "value": 4,
+            "weight": 1
+          },
+          {
+            "id": "symptom_fatigue",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "fatigue",
+            "weight": 2
+          },
+          {
+            "id": "symptom_nausea",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "nausea",
+            "weight": 2
+          },
+          {
+            "id": "symptom_pain",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "back or side pain",
+            "weight": 2
+          },
+          {
+            "id": "symptom_headache",
+            "signal": "symptoms",
+            "op": "includes",
+            "value": "headache",
+            "weight": 1
+          }
+        ]
+      },
+      "recommendations": [
+        "Follow the medic's hydration and meal plan; do not self-medicate.",
+        "Report urinary burning, blood, or inability to void directly to the medic.",
+        "Ease workload until nausea/fatigue settle.",
+        "Keep exercise nutrition timing if cleared — bone/muscle countermeasures depend on it."
+      ],
+      "severityHint": "log",
+      "needsEarthIfSeverity": [],
+      "notADiagnosis": true
+    }
+  ],
+  "csaRiskFocus": [
+    {
+      "id": "musculoskeletal",
+      "summary": "Reduced muscle strength and aerobic capacity; increased bone fragility (CSA HLS risks)."
+    },
+    {
+      "id": "sensorimotor",
+      "summary": "Sensory changes/dysfunctions affecting mission tasks (CSA HLS risks)."
+    },
+    {
+      "id": "metabolism",
+      "summary": "Metabolism and nutrient composition effects on health during missions (CSA HLS risks)."
+    },
+    {
+      "id": "behavioural_health_performance",
+      "summary": "Psychological adaptation, stress, fatigue, cognitive deterioration, team dynamics (CSA HLS risks)."
+    },
+    {
+      "id": "radiation",
+      "summary": "Health and performance impairment from radiation damage (CSA/NASA)."
+    },
+    {
+      "id": "variable_gravity_sans",
+      "summary": "Physiological adaptation including Space-Associated Neuro-ocular Syndrome (SANS) (CSA HLS risks)."
+    }
+  ],
+  "symptomPlaybook": {
+    "headache": {
+      "immediate": [
+        "Sit or float quietly and note when the headache started.",
+        "Check cabin CO2 and personal SpO2 — headaches often track with elevated CO2 or mild hypoxia.",
+        "Drink water if the medic's hydration plan allows; dim lights and rest your eyes.",
+        "Tell ATLAS if vision changes, dizziness, or vomiting start."
+      ],
+      "linkedPatterns": [
+        "cabin_co2_pattern",
+        "hypoxia_pattern",
+        "sleep_fatigue_isolation_pattern",
+        "sans_vision_pattern"
+      ]
+    },
+    "dizziness": {
+      "immediate": [
+        "Stop safety-critical tasks (piloting, EVA prep) until cleared.",
+        "Keep your head movements slow; orient to a fixed visual reference.",
+        "Remeasure heart rate and SpO2 while still.",
+        "Report whether this started after a gravity or pressure change."
+      ],
+      "linkedPatterns": [
+        "vestibular_sensorimotor_pattern",
+        "hypoxia_pattern",
+        "cardiovascular_adaptation_pattern",
+        "decompression_sickness_watch"
+      ]
+    },
+    "blurry vision": {
+      "immediate": [
+        "Pause close visual work; note near vs far blur and any headache.",
+        "This can relate to fluid shift / SANS-like concerns — log it for the medic.",
+        "Check SpO2 and cabin CO2.",
+        "Avoid EVA or precision optical tasks until the medic reviews."
+      ],
+      "linkedPatterns": [
+        "sans_vision_pattern",
+        "hypoxia_pattern",
+        "cabin_co2_pattern"
+      ]
+    },
+    "nausea": {
+      "immediate": [
+        "Reduce head motion; use a stable orientation.",
+        "Skip non-essential exercise until the wave passes if the medic agrees.",
+        "Sip fluids only as directed; note any vomiting.",
+        "If this is after EVA/prebreathe, treat as higher urgency and page the medic."
+      ],
+      "linkedPatterns": [
+        "vestibular_sensorimotor_pattern",
+        "decompression_sickness_watch",
+        "immune_infection_like_pattern",
+        "radiation_exposure_pattern"
+      ]
+    },
+    "back or side pain": {
+      "immediate": [
+        "Stop loading that hurts; use gentle repositioning.",
+        "Log whether pain is joint/muscle after pressure change (DCS watch) or after exercise.",
+        "Protect today's exercise countermeasure only if pain-free and medic-cleared.",
+        "Page the medic for sudden severe pain, especially post-EVA."
+      ],
+      "linkedPatterns": [
+        "musculoskeletal_deconditioning_pattern",
+        "decompression_sickness_watch"
+      ]
+    },
+    "sore throat": {
+      "immediate": [
+        "Remeasure temperature with the vest/thermometer protocol.",
+        "Limit close face-to-face time if infection is possible in the closed cabin.",
+        "Hydrate per medic guidance; rest your voice.",
+        "Report fever, rash, or worsening fatigue."
+      ],
+      "linkedPatterns": [
+        "immune_infection_like_pattern"
+      ]
+    },
+    "chest pain": {
+      "immediate": [
+        "Stop all activity. Sit or lie comfortably. Stay with someone if possible.",
+        "Open the emergency guide and page the medic now.",
+        "Remeasure HR, SpO2, and BP when safe.",
+        "This is always treated as urgent — not a wait-and-see symptom."
+      ],
+      "linkedPatterns": [
+        "cardiovascular_adaptation_pattern",
+        "biomonitor_cardio_strain_pattern"
+      ],
+      "urgency": "emergency"
+    },
+    "shortness of breath": {
+      "immediate": [
+        "Stop exertion; check SpO2 immediately.",
+        "Verify cabin atmosphere / ECLSS with the crew.",
+        "Page the medic if SpO2 is at watch/alert or breathing stays hard at rest.",
+        "Open emergency steps if you cannot speak full sentences."
+      ],
+      "linkedPatterns": [
+        "hypoxia_pattern",
+        "cabin_co2_pattern",
+        "cardiovascular_adaptation_pattern"
+      ],
+      "urgency": "act"
+    },
+    "fatigue": {
+      "immediate": [
+        "Protect a real sleep opportunity; cut non-critical workload.",
+        "Check last night's sleep hours, stress score, and cabin CO2.",
+        "Keep exercise if safe, but don't push through severe exhaustion.",
+        "Tell ATLAS about mood, focus, or dizziness too."
+      ],
+      "linkedPatterns": [
+        "sleep_fatigue_isolation_pattern",
+        "behavioural_neurocog_pattern",
+        "musculoskeletal_deconditioning_pattern",
+        "cabin_co2_pattern"
+      ]
+    },
+    "stress": {
+      "immediate": [
+        "Take a short protected rest period.",
+        "Ask ATLAS for a medic check so we pair how you feel with vitals.",
+        "Protect sleep and reduce optional tasks for the next block.",
+        "The medic can help with workload and team factors."
+      ],
+      "linkedPatterns": [
+        "sleep_fatigue_isolation_pattern",
+        "behavioural_neurocog_pattern"
+      ]
+    },
+    "feverish": {
+      "immediate": [
+        "Measure temperature now and again in 30 minutes.",
+        "Rest, hydrate per medic plan, and note chills or rash.",
+        "Limit close contact if infectious illness is possible.",
+        "Page the medic for fever at alert levels."
+      ],
+      "linkedPatterns": [
+        "immune_infection_like_pattern"
+      ]
+    },
+    "rash": {
+      "immediate": [
+        "Log location if your medical kit workflow allows; avoid scratching.",
+        "Remeasure temperature.",
+        "Show the medic at the next contact; sooner if spreading or with fever."
+      ],
+      "linkedPatterns": [
+        "immune_infection_like_pattern"
+      ]
+    },
+    "confusion": {
+      "immediate": [
+        "Stop critical tasks. Stay with a crewmate.",
+        "Check SpO2, cabin CO2, sleep, and temperature.",
+        "Page the medic if confusion persists or worsens."
+      ],
+      "linkedPatterns": [
+        "behavioural_neurocog_pattern",
+        "cabin_co2_pattern",
+        "hypoxia_pattern",
+        "sleep_fatigue_isolation_pattern"
+      ],
+      "urgency": "act"
+    }
+  }
+}
